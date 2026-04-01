@@ -1,0 +1,157 @@
+{
+  "entities": {
+    "organizations": {
+      "title": "Organization",
+      "description": "Represents a hostel owner's organization.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the organization." },
+        "ownerEmail": { "type": "string", "description": "Email of the owner." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "ownerEmail", "createdAt"]
+    },
+    "hostels": {
+      "title": "Hostel",
+      "description": "Represents a specific building/hostel under an organization.",
+      "type": "object",
+      "properties": {
+        "organizationId": { "type": "string" },
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["organizationId", "name", "createdAt"]
+    },
+    "users": {
+      "title": "User",
+      "description": "Represents an admin or staff member.",
+      "type": "object",
+      "properties": {
+        "organizationId": { "type": "string", "description": "ID of the organization." },
+        "currentHostelId": { "type": "string", "description": "Currently selected hostel ID." },
+        "role": { "type": "string", "enum": ["admin", "staff"] },
+        "email": { "type": "string" },
+        "name": { "type": "string" }
+      },
+      "required": ["organizationId", "role", "email", "name"]
+    },
+    "rooms": {
+      "title": "Room",
+      "description": "Represents a room in the hostel.",
+      "type": "object",
+      "properties": {
+        "organizationId": { "type": "string" },
+        "hostelId": { "type": "string" },
+        "roomNumber": { "type": "string" },
+        "totalBeds": { "type": "integer" }
+      },
+      "required": ["organizationId", "hostelId", "roomNumber", "totalBeds"]
+    },
+    "beds": {
+      "title": "Bed",
+      "description": "Represents a bed in a room.",
+      "type": "object",
+      "properties": {
+        "organizationId": { "type": "string" },
+        "hostelId": { "type": "string" },
+        "roomId": { "type": "string" },
+        "bedNumber": { "type": "string" },
+        "status": { "type": "string", "enum": ["occupied", "vacant"] }
+      },
+      "required": ["organizationId", "hostelId", "roomId", "bedNumber", "status"]
+    },
+    "members": {
+      "title": "Member",
+      "description": "Represents a tenant/student.",
+      "type": "object",
+      "properties": {
+        "organizationId": { "type": "string" },
+        "hostelId": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "idProof": { "type": "string", "description": "Aadhar or other ID." },
+        "roomId": { "type": "string" },
+        "bedId": { "type": "string" },
+        "rentAmount": { "type": "number" },
+        "deposit": { "type": "number" },
+        "joiningDate": { "type": "string", "format": "date" },
+        "billingDay": { "type": "integer", "description": "Day of the month for billing (1-31)." },
+        "lastPaidMonth": { "type": "string", "description": "Last month for which rent was fully paid (yyyy-MM)." },
+        "status": { "type": "string", "enum": ["active", "inactive"] }
+      },
+      "required": ["organizationId", "hostelId", "name", "phone", "roomId", "bedId", "rentAmount", "deposit", "joiningDate", "billingDay", "status"]
+    },
+    "payments": {
+      "title": "Payment",
+      "description": "Represents a rent payment.",
+      "type": "object",
+      "properties": {
+        "organizationId": { "type": "string" },
+        "hostelId": { "type": "string" },
+        "memberId": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" },
+        "method": { "type": "string", "enum": ["cash", "upi", "bank"] },
+        "status": { "type": "string", "enum": ["paid", "pending", "partial"] },
+        "month": { "type": "string", "description": "Month for which payment is made (e.g. 2026-03)." }
+      },
+      "required": ["organizationId", "hostelId", "memberId", "amount", "date", "method", "status", "month"]
+    },
+    "staff": {
+      "title": "Staff",
+      "description": "Represents a staff member.",
+      "type": "object",
+      "properties": {
+        "organizationId": { "type": "string" },
+        "hostelId": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "phone": { "type": "string" },
+        "salary": { "type": "number" }
+      },
+      "required": ["organizationId", "hostelId", "name", "role", "phone", "salary"]
+    },
+    "salary_payments": {
+      "title": "Salary Payment",
+      "description": "Represents a salary payment to staff.",
+      "type": "object",
+      "properties": {
+        "organizationId": { "type": "string" },
+        "hostelId": { "type": "string" },
+        "staffId": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["paid", "pending"] }
+      },
+      "required": ["organizationId", "hostelId", "staffId", "amount", "date", "status"]
+    },
+    "expenses": {
+      "title": "Expense",
+      "description": "Represents a hostel expense.",
+      "type": "object",
+      "properties": {
+        "organizationId": { "type": "string" },
+        "hostelId": { "type": "string" },
+        "category": { "type": "string" },
+        "amount": { "type": "number" },
+        "description": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" }
+      },
+      "required": ["organizationId", "hostelId", "category", "amount", "date"]
+    }
+  },
+  "firestore": {
+    "/organizations/{orgId}": { "schema": "organizations", "description": "Hostel organizations." },
+    "/hostels/{hostelId}": { "schema": "hostels", "description": "Specific hostel buildings." },
+    "/users/{userId}": { "schema": "users", "description": "App users (admins/staff)." },
+    "/rooms/{roomId}": { "schema": "rooms", "description": "Hostel rooms." },
+    "/beds/{bedId}": { "schema": "beds", "description": "Beds in rooms." },
+    "/members/{memberId}": { "schema": "members", "description": "Hostel members." },
+    "/payments/{paymentId}": { "schema": "payments", "description": "Rent payments." },
+    "/staff/{staffId}": { "schema": "staff", "description": "Hostel staff." },
+    "/salary_payments/{salId}": { "schema": "salary_payments", "description": "Staff salary payments." },
+    "/expenses/{expId}": { "schema": "expenses", "description": "Hostel expenses." }
+  }
+}

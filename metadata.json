@@ -1,0 +1,5 @@
+{
+  "name": "Zest Stay",
+  "description": "A multi-tenant Hostel Management system for managing members, rooms, payments, and expenses.",
+  "requestFramePermissions": []
+}

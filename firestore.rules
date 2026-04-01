@@ -1,0 +1,120 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: organizations
+    // Fields: name (string), ownerEmail (string), createdAt (timestamp)
+    //
+    // Collection: hostels
+    // Fields: organizationId (string), name (string), address (string), phone (string), createdAt (timestamp)
+    //
+    // Collection: users
+    // Fields: organizationId (string), currentHostelId (string), role (string), email (string), name (string)
+    //
+    // Collection: rooms, beds, members, payments, staff, salary_payments, expenses
+    // All have organizationId (string) and hostelId (string)
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function userExists() {
+      return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        (userExists() && getUserData().role == 'admin') ||
+        (request.auth.token.email == "samileti.kiran@gmail.com" && request.auth.token.email_verified == true)
+      );
+    }
+
+    function belongsToOrg(orgId) {
+      return isAuthenticated() && userExists() && getUserData().organizationId == orgId;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // Domain Validators
+    function isValidOrganization(data) {
+      return hasRequiredFields(['name', 'ownerEmail', 'createdAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.ownerEmail is string;
+    }
+
+    function isValidHostel(data) {
+      return hasRequiredFields(['organizationId', 'name', 'createdAt']) &&
+             data.organizationId is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100;
+    }
+
+    function isValidUser(data) {
+      return hasRequiredFields(['organizationId', 'role', 'email', 'name']) &&
+             data.organizationId is string &&
+             data.role in ['admin', 'staff'] &&
+             data.email is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100;
+    }
+
+    // Test collection for connection test
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // Organizations
+    match /organizations/{orgId} {
+      allow read: if belongsToOrg(orgId);
+      allow create: if isAuthenticated() && isValidOrganization(request.resource.data);
+      allow update: if belongsToOrg(orgId) && isAdmin() && isValidOrganization(request.resource.data);
+    }
+
+    // Hostels
+    match /hostels/{hostelId} {
+      allow read: if isAuthenticated() && userExists() && resource != null && belongsToOrg(resource.data.organizationId);
+      allow create: if isAuthenticated() && belongsToOrg(request.resource.data.organizationId) && isValidHostel(request.resource.data);
+      allow update, delete: if isAuthenticated() && belongsToOrg(resource.data.organizationId) && isAdmin() && (request.method == 'delete' || isValidHostel(request.resource.data));
+    }
+
+    // Users
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (isOwner(userId) || (userExists() && resource != null && belongsToOrg(resource.data.organizationId)));
+      allow create: if isAuthenticated() && isValidUser(request.resource.data);
+      allow update: if (isOwner(userId) || (userExists() && resource != null && belongsToOrg(resource.data.organizationId) && isAdmin())) && isValidUser(request.resource.data);
+    }
+
+    // Generic Multi-tenant Collections
+    match /{collectionName}/{docId} {
+      function isTenantCollection() {
+        return collectionName in ['rooms', 'beds', 'members', 'payments', 'staff', 'salary_payments', 'expenses'];
+      }
+
+      function isValidTenantDoc(data) {
+        return data.organizationId is string && data.organizationId.size() > 0 &&
+               data.hostelId is string && data.hostelId.size() > 0;
+      }
+
+      allow read: if isTenantCollection() && isAuthenticated() && userExists() && resource != null && belongsToOrg(resource.data.organizationId);
+      allow create: if isTenantCollection() && 
+                      belongsToOrg(request.resource.data.organizationId) && 
+                      isValidTenantDoc(request.resource.data);
+      allow update, delete: if isTenantCollection() && 
+                              belongsToOrg(resource.data.organizationId) && 
+                              isAdmin() &&
+                              (request.method == 'delete' || isValidTenantDoc(request.resource.data));
+    }
+  }
+}
