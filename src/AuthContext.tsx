@@ -1,9 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
-import { auth, db } from './firebase';
+import { auth, db, handleFirestoreError, OperationType } from './firebase';
 import { User, Organization, Hostel } from './types';
-import { handleFirestoreError, OperationType } from './lib/firestore-errors';
 
 interface AuthContextType {
   user: FirebaseUser | null;
@@ -17,6 +16,7 @@ interface AuthContextType {
   setTheme: (theme: 'light' | 'dark') => void;
   setCurrentHostel: (hostelId: string) => Promise<void>;
   refreshUserData: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,20 +35,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   const setTheme = (newTheme: 'light' | 'dark') => {
+    console.log('AuthContext: setTheme called with:', newTheme);
     setThemeState(newTheme);
     localStorage.setItem('theme', newTheme);
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
   };
 
   useEffect(() => {
+    const root = window.document.documentElement;
+    const body = window.document.body;
+    console.log('AuthContext: Applying theme:', theme);
     if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
+      root.classList.add('dark');
+      body.classList.add('dark');
+      console.log('AuthContext: Added .dark class to html and body');
     } else {
-      document.documentElement.classList.remove('dark');
+      root.classList.remove('dark');
+      body.classList.remove('dark');
+      console.log('AuthContext: Removed .dark class from html and body');
     }
   }, [theme]);
 
@@ -178,6 +181,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const logout = async () => {
+    try {
+      await auth.signOut();
+      setUser(null);
+      setUserData(null);
+      setOrganization(null);
+      setHostels([]);
+      setCurrentHostelState(null);
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -190,7 +206,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       theme, 
       setTheme, 
       setCurrentHostel,
-      refreshUserData 
+      refreshUserData,
+      logout
     }}>
       {children}
     </AuthContext.Provider>

@@ -14,40 +14,40 @@ const AddHostelModal: React.FC<AddHostelModalProps> = ({ isOpen, onClose, formDa
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="text-lg font-bold text-gray-900">Add New Hostel/PG</h3>
-          <button onClick={onClose} className="p-2 hover:bg-gray-50 rounded-lg">
-            <X className="w-5 h-5 text-gray-400" />
+      <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl border border-gray-100 dark:border-gray-700">
+        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Add New Hostel/PG</h3>
+          <button onClick={onClose} className="p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors">
+            <X className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </button>
         </div>
         <form onSubmit={onSubmit} className="p-6 space-y-4">
           <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">Hostel Name</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Hostel Name</label>
             <input
               type="text"
               required
               placeholder="e.g. Sunshine PG"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
             />
           </div>
           <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">Address</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Address</label>
             <textarea
               required
               placeholder="Full address of the hostel"
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               rows={3}
             />
           </div>
           <div className="pt-4">
             <button
               type="submit"
-              className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors"
+              className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100 dark:shadow-none"
             >
               Create Hostel
             </button>

@@ -10,7 +10,18 @@ export const calculateProRataRent = (rentAmount: number, joiningDate: string) =>
 
 export const getDuesInfo = (member: Member, payments: Payment[] = []) => {
   const today = startOfDay(new Date());
-  const joiningDate = startOfDay(parseISO(member.joiningDate));
+  // Safety check for joiningDate
+  let joiningDate: Date;
+  try {
+    if (!member.joiningDate) {
+      joiningDate = startOfDay(new Date());
+    } else {
+      const parsed = parseISO(member.joiningDate);
+      joiningDate = isNaN(parsed.getTime()) ? startOfDay(new Date()) : startOfDay(parsed);
+    }
+  } catch (e) {
+    joiningDate = startOfDay(new Date());
+  }
   const billingType = member.billingType || 'anniversary';
   const billingDay = billingType === 'fixed_first' ? 1 : joiningDate.getDate();
 

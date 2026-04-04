@@ -1,23 +1,118 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: users
+// Fields:
+//   - name: string (required)
+//   - email: string (required, email format)
+//   - phone: string (required)
+//   - organizationId: string (required)
+//   - currentHostelId: string (optional)
+//   - role: string (required, 'admin' or 'user')
+//   - createdAt: timestamp (required)
+//
+// Collection: organizations
+// Fields:
+//   - name: string (required)
+//   - subscriptionType: string (required, 'Free', 'Basic', 'Growth', 'Unlimited')
+//   - subscriptionStatus: string (required, 'active', 'expired', 'trial')
+//   - subscriptionEndDate: timestamp (optional)
+//   - createdAt: timestamp (required)
+//
+// Collection: hostels
+// Fields:
+//   - organizationId: string (required)
+//   - name: string (required)
+//   - createdAt: timestamp (required)
+//
+// Collection: rooms
+// Fields:
+//   - organizationId: string (required)
+//   - hostelId: string (required)
+//   - roomNumber: string (required)
+//   - totalBeds: number (required, positive)
+//   - type: string (required, 'AC' or 'Non-AC')
+//
+// Collection: beds
+// Fields:
+//   - organizationId: string (required)
+//   - hostelId: string (required)
+//   - roomId: string (required)
+//   - bedNumber: string (required)
+//   - status: string (required, 'vacant' or 'occupied')
+//
+// Collection: members
+// Fields:
+//   - organizationId: string (required)
+//   - hostelId: string (required)
+//   - name: string (required)
+//   - phone: string (required)
+//   - idProof: string (optional)
+//   - roomId: string (required)
+//   - bedId: string (required)
+//   - rentAmount: number (required, positive)
+//   - deposit: number (required, positive)
+//   - joiningDate: string (required, date format)
+//   - billingType: string (required, 'anniversary' or 'fixed_first')
+//   - status: string (required, 'active' or 'inactive')
+//   - lastPaidMonth: string (optional)
+//
+// Collection: payments
+// Fields:
+//   - organizationId: string (required)
+//   - hostelId: string (required)
+//   - memberId: string (required)
+//   - memberName: string (required)
+//   - amount: number (required, positive)
+//   - month: string (required, YYYY-MM)
+//   - date: string (required, date format)
+//   - method: string (required, 'cash', 'upi', 'bank', 'bank_transfer')
+//   - status: string (required, 'paid' or 'partial')
+//   - notes: string (optional)
+//   - createdAt: timestamp (required)
+//
+// Collection: staff
+// Fields:
+//   - organizationId: string (required)
+//   - hostelId: string (required)
+//   - name: string (required)
+//   - role: string (required)
+//   - phone: string (required)
+//   - salary: number (required, positive)
+//   - joinDate: string (required, date format)
+//   - status: string (required, 'active' or 'inactive')
+//
+// Collection: staffSalaries
+// Fields:
+//   - organizationId: string (required)
+//   - hostelId: string (required)
+//   - staffId: string (required)
+//   - amount: number (required, positive)
+//   - month: string (required, YYYY-MM)
+//   - date: string (required, date format)
+//   - status: string (required, 'paid')
+//
+// Collection: expenses
+// Fields:
+//   - organizationId: string (required)
+//   - hostelId: string (required)
+//   - title: string (required)
+//   - amount: number (required, positive)
+//   - category: string (required, 'utilities', 'maintenance', 'food', 'other')
+//   - date: string (required, date format)
+//   - description: string (optional)
+//
+// ===============================================================
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
     // ===============================================================
-    // Assumed Data Model
-    // ===============================================================
-    // Collection: organizations
-    // Fields: name (string), ownerEmail (string), createdAt (timestamp)
-    //
-    // Collection: hostels
-    // Fields: organizationId (string), name (string), address (string), phone (string), createdAt (timestamp)
-    //
-    // Collection: users
-    // Fields: organizationId (string), currentHostelId (string), role (string), email (string), name (string)
-    //
-    // Collection: rooms, beds, members, payments, staff, salary_payments, expenses
-    // All have organizationId (string) and hostelId (string)
+    // Helper Functions
     // ===============================================================
 
-    // Helper Functions
     function isAuthenticated() {
       return request.auth != null;
     }
@@ -26,95 +121,210 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    function userExists() {
-      return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
-    }
-
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    function isAdmin() {
-      return isAuthenticated() && (
-        (userExists() && getUserData().role == 'admin') ||
-        (request.auth.token.email == "samileti.kiran@gmail.com" && request.auth.token.email_verified == true)
-      );
+    function belongsToOrg(orgId) {
+      return isAuthenticated() && getUserData().organizationId == orgId;
     }
 
-    function belongsToOrg(orgId) {
-      return isAuthenticated() && userExists() && getUserData().organizationId == orgId;
+    function isAdmin() {
+      return isAuthenticated() &&
+        (getUserData().role == 'admin' ||
+         (request.auth.token.email == "samileti.kiran@gmail.com" && request.auth.token.email_verified == true));
     }
 
     function hasRequiredFields(fields) {
       return request.resource.data.keys().hasAll(fields);
     }
 
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}$");
+    }
+
+    function isValidMonthString(monthStr) {
+      return monthStr is string && monthStr.matches("^\\d{4}-\\d{2}$");
+    }
+
+    // ===============================================================
     // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             isValidEmail(data.email) &&
+             data.phone is string && data.phone.size() >= 10 && data.phone.size() <= 15 &&
+             data.organizationId is string &&
+             data.role in ['admin', 'user'] &&
+             data.createdAt is timestamp;
+    }
+
     function isValidOrganization(data) {
-      return hasRequiredFields(['name', 'ownerEmail', 'createdAt']) &&
-             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
-             data.ownerEmail is string;
+      return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.subscriptionType in ['Free', 'Basic', 'Growth', 'Unlimited'] &&
+             data.subscriptionStatus in ['active', 'expired', 'trial'] &&
+             data.createdAt is timestamp;
     }
 
     function isValidHostel(data) {
-      return hasRequiredFields(['organizationId', 'name', 'createdAt']) &&
-             data.organizationId is string &&
-             data.name is string && data.name.size() > 0 && data.name.size() < 100;
+      return data.organizationId is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.createdAt is timestamp;
     }
 
-    function isValidUser(data) {
-      return hasRequiredFields(['organizationId', 'role', 'email', 'name']) &&
-             data.organizationId is string &&
-             data.role in ['admin', 'staff'] &&
-             data.email is string &&
-             data.name is string && data.name.size() > 0 && data.name.size() < 100;
+    function isValidRoom(data) {
+      return data.organizationId is string &&
+             data.hostelId is string &&
+             data.roomNumber is string && data.roomNumber.size() > 0 && data.roomNumber.size() < 20 &&
+             data.totalBeds is number && data.totalBeds > 0 &&
+             data.type in ['AC', 'Non-AC'];
     }
 
-    // Test collection for connection test
-    match /test/connection {
-      allow read: if true;
+    function isValidBed(data) {
+      return data.organizationId is string &&
+             data.hostelId is string &&
+             data.roomId is string &&
+             data.bedNumber is string && data.bedNumber.size() > 0 && data.bedNumber.size() < 20 &&
+             data.status in ['vacant', 'occupied'];
     }
 
-    // Organizations
-    match /organizations/{orgId} {
-      allow read: if belongsToOrg(orgId);
-      allow create: if isAuthenticated() && isValidOrganization(request.resource.data);
-      allow update: if belongsToOrg(orgId) && isAdmin() && isValidOrganization(request.resource.data);
+    function isValidMember(data) {
+      return data.organizationId is string &&
+             data.hostelId is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.phone is string && data.phone.size() >= 10 && data.phone.size() <= 15 &&
+             data.roomId is string &&
+             data.bedId is string &&
+             data.rentAmount is number && data.rentAmount >= 0 &&
+             data.deposit is number && data.deposit >= 0 &&
+             isValidDateString(data.joiningDate) &&
+             data.billingType in ['anniversary', 'fixed_first'] &&
+             data.status in ['active', 'inactive'];
     }
 
-    // Hostels
-    match /hostels/{hostelId} {
-      allow read: if isAuthenticated() && userExists() && resource != null && belongsToOrg(resource.data.organizationId);
-      allow create: if isAuthenticated() && belongsToOrg(request.resource.data.organizationId) && isValidHostel(request.resource.data);
-      allow update, delete: if isAuthenticated() && belongsToOrg(resource.data.organizationId) && isAdmin() && (request.method == 'delete' || isValidHostel(request.resource.data));
+    function isValidPayment(data) {
+      return data.organizationId is string &&
+             data.hostelId is string &&
+             data.memberId is string &&
+             data.memberName is string &&
+             data.amount is number && data.amount > 0 &&
+             isValidMonthString(data.month) &&
+             isValidDateString(data.date) &&
+             data.method in ['cash', 'upi', 'bank', 'bank_transfer'] &&
+             data.status in ['paid', 'partial'] &&
+             data.createdAt is timestamp;
     }
 
-    // Users
+    function isValidStaff(data) {
+      return data.organizationId is string &&
+             data.hostelId is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.role is string && data.role.size() > 0 &&
+             data.phone is string && data.phone.size() >= 10 && data.phone.size() <= 15 &&
+             data.salary is number && data.salary >= 0 &&
+             isValidDateString(data.joinDate) &&
+             data.status in ['active', 'inactive'];
+    }
+
+    function isValidSalaryPayment(data) {
+      return data.organizationId is string &&
+             data.hostelId is string &&
+             data.staffId is string &&
+             data.amount is number && data.amount > 0 &&
+             isValidMonthString(data.month) &&
+             isValidDateString(data.date) &&
+             data.status == 'paid';
+    }
+
+    function isValidExpense(data) {
+      return data.organizationId is string &&
+             data.hostelId is string &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.amount is number && data.amount > 0 &&
+             data.category in ['utilities', 'maintenance', 'food', 'other'] &&
+             isValidDateString(data.date);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
     match /users/{userId} {
-      allow read: if isAuthenticated() && (isOwner(userId) || (userExists() && resource != null && belongsToOrg(resource.data.organizationId)));
-      allow create: if isAuthenticated() && isValidUser(request.resource.data);
-      allow update: if (isOwner(userId) || (userExists() && resource != null && belongsToOrg(resource.data.organizationId) && isAdmin())) && isValidUser(request.resource.data);
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data) &&
+                      (isOwner(userId) ? request.resource.data.role == resource.data.role : true);
     }
 
-    // Generic Multi-tenant Collections
-    match /{collectionName}/{docId} {
-      function isTenantCollection() {
-        return collectionName in ['rooms', 'beds', 'members', 'payments', 'staff', 'salary_payments', 'expenses'];
-      }
+    match /organizations/{orgId} {
+      allow read: if belongsToOrg(orgId) || isAdmin();
+      allow create: if isAuthenticated() && isValidOrganization(request.resource.data);
+      allow update: if isAdmin() && isValidOrganization(request.resource.data);
+    }
 
-      function isValidTenantDoc(data) {
-        return data.organizationId is string && data.organizationId.size() > 0 &&
-               data.hostelId is string && data.hostelId.size() > 0;
-      }
+    match /hostels/{hostelId} {
+      allow read: if belongsToOrg(resource.data.organizationId) || isAdmin();
+      allow create: if belongsToOrg(request.resource.data.organizationId) && isValidHostel(request.resource.data);
+      allow update: if belongsToOrg(resource.data.organizationId) && isValidHostel(request.resource.data);
+      allow delete: if isAdmin();
+    }
 
-      allow read: if isTenantCollection() && isAuthenticated() && userExists() && resource != null && belongsToOrg(resource.data.organizationId);
-      allow create: if isTenantCollection() && 
-                      belongsToOrg(request.resource.data.organizationId) && 
-                      isValidTenantDoc(request.resource.data);
-      allow update, delete: if isTenantCollection() && 
-                              belongsToOrg(resource.data.organizationId) && 
-                              isAdmin() &&
-                              (request.method == 'delete' || isValidTenantDoc(request.resource.data));
+    match /rooms/{roomId} {
+      allow read: if belongsToOrg(resource.data.organizationId) || isAdmin();
+      allow create: if belongsToOrg(request.resource.data.organizationId) && isValidRoom(request.resource.data);
+      allow update: if belongsToOrg(resource.data.organizationId) && isValidRoom(request.resource.data);
+      allow delete: if belongsToOrg(resource.data.organizationId) || isAdmin();
+    }
+
+    match /beds/{bedId} {
+      allow read: if belongsToOrg(resource.data.organizationId) || isAdmin();
+      allow create: if belongsToOrg(request.resource.data.organizationId) && isValidBed(request.resource.data);
+      allow update: if belongsToOrg(resource.data.organizationId) && isValidBed(request.resource.data);
+      allow delete: if belongsToOrg(resource.data.organizationId) || isAdmin();
+    }
+
+    match /members/{memberId} {
+      allow read: if belongsToOrg(resource.data.organizationId) || isAdmin();
+      allow create: if belongsToOrg(request.resource.data.organizationId) && isValidMember(request.resource.data);
+      allow update: if belongsToOrg(resource.data.organizationId) && isValidMember(request.resource.data);
+      allow delete: if belongsToOrg(resource.data.organizationId) || isAdmin();
+    }
+
+    match /payments/{paymentId} {
+      allow read: if belongsToOrg(resource.data.organizationId) || isAdmin();
+      allow create: if belongsToOrg(request.resource.data.organizationId) && isValidPayment(request.resource.data);
+      allow update: if belongsToOrg(resource.data.organizationId) && isValidPayment(request.resource.data);
+      allow delete: if belongsToOrg(resource.data.organizationId) || isAdmin();
+    }
+
+    match /staff/{staffId} {
+      allow read: if belongsToOrg(resource.data.organizationId) || isAdmin();
+      allow create: if belongsToOrg(request.resource.data.organizationId) && isValidStaff(request.resource.data);
+      allow update: if belongsToOrg(resource.data.organizationId) && isValidStaff(request.resource.data);
+      allow delete: if belongsToOrg(resource.data.organizationId) || isAdmin();
+    }
+
+    match /staffSalaries/{salaryId} {
+      allow read: if belongsToOrg(resource.data.organizationId) || isAdmin();
+      allow create: if belongsToOrg(request.resource.data.organizationId) && isValidSalaryPayment(request.resource.data);
+      allow update: if belongsToOrg(resource.data.organizationId) && isValidSalaryPayment(request.resource.data);
+      allow delete: if belongsToOrg(resource.data.organizationId) || isAdmin();
+    }
+
+    match /expenses/{expenseId} {
+      allow read: if belongsToOrg(resource.data.organizationId) || isAdmin();
+      allow create: if belongsToOrg(request.resource.data.organizationId) && isValidExpense(request.resource.data);
+      allow update: if belongsToOrg(resource.data.organizationId) && isValidExpense(request.resource.data);
+      allow delete: if belongsToOrg(resource.data.organizationId) || isAdmin();
     }
   }
 }

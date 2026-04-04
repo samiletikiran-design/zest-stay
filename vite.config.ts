@@ -10,34 +10,33 @@ export default defineConfig(({mode}) => {
     plugins: [
       react(), 
       tailwindcss(),
-      VitePWA({
-        registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
-        manifest: {
-          name: 'Hostel Management System',
-          short_name: 'HostelApp',
-          description: 'Manage your hostel operations offline and online.',
-          theme_color: '#4f46e5',
-          icons: [
-            {
-              src: 'https://picsum.photos/seed/hostel/192/192',
-              sizes: '192x192',
-              type: 'image/png'
-            },
-            {
-              src: 'https://picsum.photos/seed/hostel/512/512',
-              sizes: '512x512',
-              type: 'image/png'
-            },
-            {
-              src: 'https://picsum.photos/seed/hostel/512/512',
-              sizes: '512x512',
-              type: 'image/png',
-              purpose: 'any maskable'
-            }
-          ]
-        }
-      })
+        VitePWA({
+          registerType: 'autoUpdate',
+          includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+          manifest: {
+            name: 'Zest Stay - Hostel Management',
+            short_name: 'Zest Stay',
+            description: 'Smart PG & Hostel Management System',
+            theme_color: '#4f46e5',
+            background_color: '#ffffff',
+            display: 'standalone',
+            start_url: '/',
+            icons: [
+              {
+                src: 'https://picsum.photos/seed/hostel/192/192',
+                sizes: '192x192',
+                type: 'image/png',
+                purpose: 'any maskable'
+              },
+              {
+                src: 'https://picsum.photos/seed/hostel/512/512',
+                sizes: '512x512',
+                type: 'image/png',
+                purpose: 'any maskable'
+              }
+            ]
+          }
+        })
     ],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),

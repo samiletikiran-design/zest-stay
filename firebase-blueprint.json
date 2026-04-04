@@ -1,157 +1,197 @@
 {
   "entities": {
-    "organizations": {
-      "title": "Organization",
-      "description": "Represents a hostel owner's organization.",
+    "User": {
+      "title": "User",
+      "description": "User profile information",
       "type": "object",
       "properties": {
-        "name": { "type": "string", "description": "Name of the organization." },
-        "ownerEmail": { "type": "string", "description": "Email of the owner." },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "name": { "type": "string", "description": "Full name of the user" },
+        "email": { "type": "string", "format": "email", "description": "Email address" },
+        "phone": { "type": "string", "description": "Phone number with country code" },
+        "organizationId": { "type": "string", "description": "ID of the organization the user belongs to" },
+        "currentHostelId": { "type": "string", "description": "ID of the hostel currently selected by the user" },
+        "role": { "type": "string", "enum": ["admin", "user"], "description": "User role" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the user was created" }
       },
-      "required": ["name", "ownerEmail", "createdAt"]
+      "required": ["name", "email", "phone", "organizationId", "role", "createdAt"]
     },
-    "hostels": {
-      "title": "Hostel",
-      "description": "Represents a specific building/hostel under an organization.",
+    "Organization": {
+      "title": "Organization",
+      "description": "Organization details and subscription status",
       "type": "object",
       "properties": {
-        "organizationId": { "type": "string" },
-        "name": { "type": "string" },
-        "address": { "type": "string" },
-        "phone": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "name": { "type": "string", "description": "Name of the organization" },
+        "subscriptionType": { "type": "string", "enum": ["Free", "Basic", "Growth", "Unlimited"], "description": "Current subscription plan" },
+        "subscriptionStatus": { "type": "string", "enum": ["active", "expired", "trial"], "description": "Status of the subscription" },
+        "subscriptionEndDate": { "type": "string", "format": "date-time", "description": "End date of the subscription" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the organization was created" }
+      },
+      "required": ["name", "subscriptionType", "subscriptionStatus", "createdAt"]
+    },
+    "Hostel": {
+      "title": "Hostel",
+      "description": "Hostel details",
+      "type": "object",
+      "properties": {
+        "organizationId": { "type": "string", "description": "ID of the parent organization" },
+        "name": { "type": "string", "description": "Name of the hostel" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the hostel was created" }
       },
       "required": ["organizationId", "name", "createdAt"]
     },
-    "users": {
-      "title": "User",
-      "description": "Represents an admin or staff member.",
-      "type": "object",
-      "properties": {
-        "organizationId": { "type": "string", "description": "ID of the organization." },
-        "currentHostelId": { "type": "string", "description": "Currently selected hostel ID." },
-        "role": { "type": "string", "enum": ["admin", "staff"] },
-        "email": { "type": "string" },
-        "name": { "type": "string" }
-      },
-      "required": ["organizationId", "role", "email", "name"]
-    },
-    "rooms": {
+    "Room": {
       "title": "Room",
-      "description": "Represents a room in the hostel.",
+      "description": "Room details within a hostel",
       "type": "object",
       "properties": {
-        "organizationId": { "type": "string" },
-        "hostelId": { "type": "string" },
-        "roomNumber": { "type": "string" },
-        "totalBeds": { "type": "integer" }
+        "organizationId": { "type": "string", "description": "ID of the parent organization" },
+        "hostelId": { "type": "string", "description": "ID of the parent hostel" },
+        "roomNumber": { "type": "string", "description": "Room number or identifier" },
+        "totalBeds": { "type": "number", "description": "Total number of beds in the room" },
+        "type": { "type": "string", "enum": ["AC", "Non-AC"], "description": "Type of room" }
       },
-      "required": ["organizationId", "hostelId", "roomNumber", "totalBeds"]
+      "required": ["organizationId", "hostelId", "roomNumber", "totalBeds", "type"]
     },
-    "beds": {
+    "Bed": {
       "title": "Bed",
-      "description": "Represents a bed in a room.",
+      "description": "Bed details within a room",
       "type": "object",
       "properties": {
-        "organizationId": { "type": "string" },
-        "hostelId": { "type": "string" },
-        "roomId": { "type": "string" },
-        "bedNumber": { "type": "string" },
-        "status": { "type": "string", "enum": ["occupied", "vacant"] }
+        "organizationId": { "type": "string", "description": "ID of the parent organization" },
+        "hostelId": { "type": "string", "description": "ID of the parent hostel" },
+        "roomId": { "type": "string", "description": "ID of the parent room" },
+        "bedNumber": { "type": "string", "description": "Bed number or identifier" },
+        "status": { "type": "string", "enum": ["vacant", "occupied"], "description": "Current status of the bed" }
       },
       "required": ["organizationId", "hostelId", "roomId", "bedNumber", "status"]
     },
-    "members": {
+    "Member": {
       "title": "Member",
-      "description": "Represents a tenant/student.",
+      "description": "Resident member details",
       "type": "object",
       "properties": {
-        "organizationId": { "type": "string" },
-        "hostelId": { "type": "string" },
-        "name": { "type": "string" },
-        "phone": { "type": "string" },
-        "idProof": { "type": "string", "description": "Aadhar or other ID." },
-        "roomId": { "type": "string" },
-        "bedId": { "type": "string" },
-        "rentAmount": { "type": "number" },
-        "deposit": { "type": "number" },
-        "joiningDate": { "type": "string", "format": "date" },
-        "billingDay": { "type": "integer", "description": "Day of the month for billing (1-31)." },
-        "lastPaidMonth": { "type": "string", "description": "Last month for which rent was fully paid (yyyy-MM)." },
-        "status": { "type": "string", "enum": ["active", "inactive"] }
+        "organizationId": { "type": "string", "description": "ID of the parent organization" },
+        "hostelId": { "type": "string", "description": "ID of the parent hostel" },
+        "name": { "type": "string", "description": "Full name of the member" },
+        "phone": { "type": "string", "description": "Phone number of the member" },
+        "idProof": { "type": "string", "description": "ID proof details" },
+        "roomId": { "type": "string", "description": "ID of the assigned room" },
+        "bedId": { "type": "string", "description": "ID of the assigned bed" },
+        "rentAmount": { "type": "number", "description": "Monthly rent amount" },
+        "deposit": { "type": "number", "description": "Security deposit amount" },
+        "joiningDate": { "type": "string", "format": "date", "description": "Date the member joined" },
+        "billingType": { "type": "string", "enum": ["anniversary", "fixed_first"], "description": "Billing cycle type" },
+        "status": { "type": "string", "enum": ["active", "inactive"], "description": "Current status of the member" },
+        "lastPaidMonth": { "type": "string", "description": "Last month for which rent was paid (YYYY-MM)" }
       },
-      "required": ["organizationId", "hostelId", "name", "phone", "roomId", "bedId", "rentAmount", "deposit", "joiningDate", "billingDay", "status"]
+      "required": ["organizationId", "hostelId", "name", "phone", "roomId", "bedId", "rentAmount", "deposit", "joiningDate", "status"]
     },
-    "payments": {
+    "Payment": {
       "title": "Payment",
-      "description": "Represents a rent payment.",
+      "description": "Rent payment record",
       "type": "object",
       "properties": {
-        "organizationId": { "type": "string" },
-        "hostelId": { "type": "string" },
-        "memberId": { "type": "string" },
-        "amount": { "type": "number" },
-        "date": { "type": "string", "format": "date-time" },
-        "method": { "type": "string", "enum": ["cash", "upi", "bank"] },
-        "status": { "type": "string", "enum": ["paid", "pending", "partial"] },
-        "month": { "type": "string", "description": "Month for which payment is made (e.g. 2026-03)." }
+        "organizationId": { "type": "string", "description": "ID of the parent organization" },
+        "hostelId": { "type": "string", "description": "ID of the parent hostel" },
+        "memberId": { "type": "string", "description": "ID of the member making the payment" },
+        "memberName": { "type": "string", "description": "Name of the member" },
+        "amount": { "type": "number", "description": "Payment amount" },
+        "month": { "type": "string", "description": "Month for which payment is made (YYYY-MM)" },
+        "date": { "type": "string", "format": "date", "description": "Date of payment" },
+        "method": { "type": "string", "enum": ["cash", "upi", "bank", "bank_transfer"], "description": "Payment method" },
+        "status": { "type": "string", "enum": ["paid", "partial"], "description": "Payment status" },
+        "notes": { "type": "string", "description": "Optional notes" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the record was created" }
       },
-      "required": ["organizationId", "hostelId", "memberId", "amount", "date", "method", "status", "month"]
+      "required": ["organizationId", "hostelId", "memberId", "amount", "month", "date", "method", "status"]
     },
-    "staff": {
+    "Staff": {
       "title": "Staff",
-      "description": "Represents a staff member.",
+      "description": "Staff member details",
       "type": "object",
       "properties": {
-        "organizationId": { "type": "string" },
-        "hostelId": { "type": "string" },
-        "name": { "type": "string" },
-        "role": { "type": "string" },
-        "phone": { "type": "string" },
-        "salary": { "type": "number" }
+        "organizationId": { "type": "string", "description": "ID of the parent organization" },
+        "hostelId": { "type": "string", "description": "ID of the parent hostel" },
+        "name": { "type": "string", "description": "Full name of the staff member" },
+        "role": { "type": "string", "description": "Role of the staff member" },
+        "phone": { "type": "string", "description": "Phone number" },
+        "salary": { "type": "number", "description": "Monthly salary amount" },
+        "joinDate": { "type": "string", "format": "date", "description": "Date of joining" },
+        "status": { "type": "string", "enum": ["active", "inactive"], "description": "Current status" }
       },
-      "required": ["organizationId", "hostelId", "name", "role", "phone", "salary"]
+      "required": ["organizationId", "hostelId", "name", "role", "phone", "salary", "joinDate", "status"]
     },
-    "salary_payments": {
-      "title": "Salary Payment",
-      "description": "Represents a salary payment to staff.",
+    "SalaryPayment": {
+      "title": "SalaryPayment",
+      "description": "Staff salary payment record",
       "type": "object",
       "properties": {
-        "organizationId": { "type": "string" },
-        "hostelId": { "type": "string" },
-        "staffId": { "type": "string" },
-        "amount": { "type": "number" },
-        "date": { "type": "string", "format": "date-time" },
-        "status": { "type": "string", "enum": ["paid", "pending"] }
+        "organizationId": { "type": "string", "description": "ID of the parent organization" },
+        "hostelId": { "type": "string", "description": "ID of the parent hostel" },
+        "staffId": { "type": "string", "description": "ID of the staff member" },
+        "amount": { "type": "number", "description": "Payment amount" },
+        "month": { "type": "string", "description": "Month for which salary is paid (YYYY-MM)" },
+        "date": { "type": "string", "format": "date", "description": "Date of payment" },
+        "status": { "type": "string", "enum": ["paid"], "description": "Payment status" }
       },
-      "required": ["organizationId", "hostelId", "staffId", "amount", "date", "status"]
+      "required": ["organizationId", "hostelId", "staffId", "amount", "month", "date", "status"]
     },
-    "expenses": {
+    "Expense": {
       "title": "Expense",
-      "description": "Represents a hostel expense.",
+      "description": "Hostel expense record",
       "type": "object",
       "properties": {
-        "organizationId": { "type": "string" },
-        "hostelId": { "type": "string" },
-        "category": { "type": "string" },
-        "amount": { "type": "number" },
-        "description": { "type": "string" },
-        "date": { "type": "string", "format": "date-time" }
+        "organizationId": { "type": "string", "description": "ID of the parent organization" },
+        "hostelId": { "type": "string", "description": "ID of the parent hostel" },
+        "title": { "type": "string", "description": "Title of the expense" },
+        "amount": { "type": "number", "description": "Expense amount" },
+        "category": { "type": "string", "enum": ["utilities", "maintenance", "food", "other"], "description": "Expense category" },
+        "date": { "type": "string", "format": "date", "description": "Date of expense" },
+        "description": { "type": "string", "description": "Optional description" }
       },
-      "required": ["organizationId", "hostelId", "category", "amount", "date"]
+      "required": ["organizationId", "hostelId", "title", "amount", "category", "date"]
     }
   },
   "firestore": {
-    "/organizations/{orgId}": { "schema": "organizations", "description": "Hostel organizations." },
-    "/hostels/{hostelId}": { "schema": "hostels", "description": "Specific hostel buildings." },
-    "/users/{userId}": { "schema": "users", "description": "App users (admins/staff)." },
-    "/rooms/{roomId}": { "schema": "rooms", "description": "Hostel rooms." },
-    "/beds/{bedId}": { "schema": "beds", "description": "Beds in rooms." },
-    "/members/{memberId}": { "schema": "members", "description": "Hostel members." },
-    "/payments/{paymentId}": { "schema": "payments", "description": "Rent payments." },
-    "/staff/{staffId}": { "schema": "staff", "description": "Hostel staff." },
-    "/salary_payments/{salId}": { "schema": "salary_payments", "description": "Staff salary payments." },
-    "/expenses/{expId}": { "schema": "expenses", "description": "Hostel expenses." }
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User documents"
+    },
+    "organizations/{orgId}": {
+      "schema": "Organization",
+      "description": "Organization documents"
+    },
+    "hostels/{hostelId}": {
+      "schema": "Hostel",
+      "description": "Hostel documents"
+    },
+    "rooms/{roomId}": {
+      "schema": "Room",
+      "description": "Room documents"
+    },
+    "beds/{bedId}": {
+      "schema": "Bed",
+      "description": "Bed documents"
+    },
+    "members/{memberId}": {
+      "schema": "Member",
+      "description": "Member documents"
+    },
+    "payments/{paymentId}": {
+      "schema": "Payment",
+      "description": "Payment documents"
+    },
+    "staff/{staffId}": {
+      "schema": "Staff",
+      "description": "Staff documents"
+    },
+    "staffSalaries/{salaryId}": {
+      "schema": "SalaryPayment",
+      "description": "Staff salary payment documents"
+    },
+    "expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "Expense documents"
+    }
   }
 }

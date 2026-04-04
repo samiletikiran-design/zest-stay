@@ -2,6 +2,25 @@ import express from "express";
 import path from "path";
 import "dotenv/config";
 import nodemailer from "nodemailer";
+import admin from "firebase-admin";
+
+// Initialize Firebase Admin
+if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  try {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+    console.log("Firebase Admin initialized successfully.");
+  } catch (error) {
+    console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT:", error);
+  }
+} else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  admin.initializeApp();
+  console.log("Firebase Admin initialized via GOOGLE_APPLICATION_CREDENTIALS.");
+} else {
+  console.warn("FIREBASE_SERVICE_ACCOUNT not found. Custom token generation will fail.");
+}
 
 // Simple in-memory store for OTPs (In production, use Redis or Firestore)
 const emailOtps = new Map<string, { otp: string; expires: number }>();
@@ -64,7 +83,7 @@ async function startServer() {
   });
 
   // Endpoint to verify Email OTP
-  app.post("/api/verify-email-otp", (req, res) => {
+  app.post("/api/verify-email-otp", async (req, res) => {
     const { email, otp } = req.body;
     if (!email || !otp) return res.status(400).json({ error: "Email and OTP are required" });
 
@@ -81,7 +100,30 @@ async function startServer() {
     }
 
     emailOtps.delete(email);
-    res.json({ success: true, message: "OTP verified successfully" });
+
+    try {
+      // Generate custom token for the user
+      let uid: string;
+      try {
+        const userRecord = await admin.auth().getUserByEmail(email);
+        uid = userRecord.uid;
+      } catch (error: any) {
+        if (error.code === 'auth/user-not-found') {
+          // For signup, we might want to create a temporary UID or handle it differently
+          // But for now, we'll just create a new user if not found
+          const userRecord = await admin.auth().createUser({ email });
+          uid = userRecord.uid;
+        } else {
+          throw error;
+        }
+      }
+
+      const customToken = await admin.auth().createCustomToken(uid);
+      res.json({ success: true, token: customToken, message: "OTP verified successfully" });
+    } catch (error) {
+      console.error("Error generating custom token:", error);
+      res.status(500).json({ error: "Failed to generate custom token" });
+    }
   });
 
   // Vite middleware for development

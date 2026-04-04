@@ -17,15 +17,17 @@ import {
   Building2
 } from 'lucide-react';
 import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, orderBy, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useAuth } from '../AuthContext';
+import { useSubscription } from '../SubscriptionContext';
 import { Expense } from '../types';
 import { format, startOfMonth, endOfMonth, subMonths, subYears, parseISO } from 'date-fns';
 import { toast } from 'sonner';
-import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
+import { safeFormat } from '../lib/utils';
 
 const Expenses = () => {
   const { organization, currentHostel, hostels, setCurrentHostel } = useAuth();
+  const { isExpired, canAddExpenses } = useSubscription();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -99,6 +101,7 @@ const Expenses = () => {
         setExpenses(list);
       } catch (error) {
         handleFirestoreError(error, OperationType.LIST, 'expenses');
+        toast.error('Failed to load expenses.');
       } finally {
         setLoading(false);
       }
@@ -110,6 +113,16 @@ const Expenses = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!organization || !currentHostel) return;
+
+    if (!canAddExpenses) {
+      toast.error('Your current plan does not allow adding expenses. Please upgrade to Growth plan.');
+      return;
+    }
+
+    if (isExpired) {
+      toast.error('Your subscription has expired. Please renew to add expenses.');
+      return;
+    }
 
     try {
       await addDoc(collection(db, 'expenses'), {
@@ -139,6 +152,11 @@ const Expenses = () => {
 
   const handleDelete = async () => {
     if (!expenseToDelete) return;
+
+    if (!canAddExpenses) {
+      toast.error('Your current plan does not allow deleting expenses. Please upgrade to Growth plan.');
+      return;
+    }
     try {
       await deleteDoc(doc(db, 'expenses', expenseToDelete));
       toast.success('Expense deleted successfully!');
@@ -153,7 +171,7 @@ const Expenses = () => {
   };
 
   const filteredExpenses = expenses.filter(exp => 
-    (exp.title || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+    (exp.description || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
     (exp.category || '').toLowerCase().includes((searchTerm || '').toLowerCase())
   );
 
@@ -172,61 +190,67 @@ const Expenses = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Expenses</h1>
-          <p className="text-gray-500">Track hostel operational costs</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Expenses</h1>
+          <p className="text-gray-500 dark:text-gray-400">Track hostel operational costs</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {hostels.length > 1 && (
-            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm">
-              <Building2 className="w-4 h-4 text-gray-400" />
+            <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 shadow-sm">
+              <Building2 className="w-4 h-4 text-gray-400 dark:text-gray-500" />
               <select 
                 value={currentHostel?.id}
                 onChange={(e) => setCurrentHostel(e.target.value)}
-                className="text-sm border-none focus:ring-0 bg-transparent font-medium text-gray-700 p-0 pr-8"
+                className="text-sm border-none focus:ring-0 bg-transparent font-medium text-gray-700 dark:text-gray-300 p-0 pr-8"
               >
                 {hostels.map(h => (
-                  <option key={h.id} value={h.id}>{h.name}</option>
+                  <option key={h.id} value={h.id} className="dark:bg-gray-800">{h.name}</option>
                 ))}
               </select>
             </div>
           )}
-          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm">
-            <CalendarIcon className="w-4 h-4 text-gray-400" />
+          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 shadow-sm">
+            <CalendarIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
             <select 
               value={timeFilter}
               onChange={(e) => setTimeFilter(e.target.value as any)}
-              className="text-sm border-none focus:ring-0 bg-transparent font-medium text-gray-700"
+              className="text-sm border-none focus:ring-0 bg-transparent font-medium text-gray-700 dark:text-gray-300"
             >
-              <option value="monthly">Monthly</option>
-              <option value="past_month">Past Month</option>
-              <option value="3_months">3 Months</option>
-              <option value="6_months">6 Months</option>
-              <option value="1_year">1 Year</option>
-              <option value="custom">Custom Range</option>
+              <option value="monthly" className="dark:bg-gray-800">Monthly</option>
+              <option value="past_month" className="dark:bg-gray-800">Past Month</option>
+              <option value="3_months" className="dark:bg-gray-800">3 Months</option>
+              <option value="6_months" className="dark:bg-gray-800">6 Months</option>
+              <option value="1_year" className="dark:bg-gray-800">1 Year</option>
+              <option value="custom" className="dark:bg-gray-800">Custom Range</option>
             </select>
           </div>
 
           {timeFilter === 'custom' && (
-            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-1 shadow-sm">
-              <CalendarIcon className="w-4 h-4 text-gray-400" />
+            <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-1 shadow-sm">
+              <CalendarIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
               <input 
                 type="date" 
                 value={customRange.start} 
                 onChange={(e) => setCustomRange(prev => ({ ...prev, start: e.target.value }))}
-                className="text-xs border-none focus:ring-0 p-0 w-24"
+                className="text-xs border-none focus:ring-0 p-0 w-24 dark:bg-transparent dark:text-gray-300"
               />
-              <span className="text-gray-300">-</span>
+              <span className="text-gray-300 dark:text-gray-600">-</span>
               <input 
                 type="date" 
                 value={customRange.end} 
                 onChange={(e) => setCustomRange(prev => ({ ...prev, end: e.target.value }))}
-                className="text-xs border-none focus:ring-0 p-0 w-24"
+                className="text-xs border-none focus:ring-0 p-0 w-24 dark:bg-transparent dark:text-gray-300"
               />
             </div>
           )}
 
           <button 
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => {
+              if (!canAddExpenses) {
+                toast.error('Your current plan does not allow adding expenses. Please upgrade to Growth plan.');
+                return;
+              }
+              setIsModalOpen(true);
+            }}
             className="flex items-center justify-center gap-2 bg-red-600 text-white px-4 py-2.5 rounded-xl font-medium hover:bg-red-700 transition-colors shadow-lg shadow-red-100"
           >
             <Plus className="w-5 h-5" />
@@ -237,30 +261,30 @@ const Expenses = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-4">
-          <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
-            <Search className="w-5 h-5 text-gray-400" />
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex items-center gap-3">
+            <Search className="w-5 h-5 text-gray-400 dark:text-gray-500" />
             <input 
               type="text" 
               placeholder="Search expenses..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1 bg-transparent border-none focus:ring-0 text-sm"
+              className="flex-1 bg-transparent border-none focus:ring-0 text-sm dark:text-white"
             />
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-gray-50/50 border-b border-gray-100">
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Expense</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Category</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Amount</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider"></th>
+                  <tr className="bg-gray-50/50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
+                    <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Expense</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Category</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                   {loading ? (
                     <tr>
                       <td colSpan={5} className="px-6 py-8 text-center">
@@ -269,26 +293,26 @@ const Expenses = () => {
                     </tr>
                   ) : filteredExpenses.length > 0 ? (
                     filteredExpenses.map((expense) => (
-                      <tr key={expense.id} className="hover:bg-gray-50/50 transition-colors">
+                      <tr key={expense.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-900/50 transition-colors">
                         <td className="px-6 py-4">
                           <div>
-                            <p className="text-sm font-bold text-gray-900">{expense.title}</p>
-                            <p className="text-xs text-gray-500 truncate max-w-[150px]">{expense.description}</p>
+                            <p className="text-sm font-bold text-gray-900 dark:text-white">{expense.title}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]">{expense.description}</p>
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
-                            <div className="p-1.5 bg-gray-50 rounded-lg">
+                            <div className="p-1.5 bg-gray-50 dark:bg-gray-900 rounded-lg">
                               {getCategoryIcon(expense.category)}
                             </div>
-                            <span className="text-xs font-medium text-gray-700 capitalize">{expense.category}</span>
+                            <span className="text-xs font-medium text-gray-700 dark:text-gray-300 capitalize">{expense.category}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-500">
-                          {format(new Date(expense.date), 'MMM d, yyyy')}
+                        <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                          {safeFormat(expense.date, 'MMM d, yyyy')}
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-sm font-bold text-red-600">₹{expense.amount}</span>
+                          <span className="text-sm font-bold text-red-600 dark:text-red-400">₹{expense.amount}</span>
                         </td>
                         <td className="px-6 py-4 text-right">
                           <button 
@@ -296,7 +320,7 @@ const Expenses = () => {
                               setExpenseToDelete(expense.id);
                               setIsDeleteModalOpen(true);
                             }}
-                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -305,7 +329,7 @@ const Expenses = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                      <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                         No expenses found.
                       </td>
                     </tr>
@@ -328,8 +352,8 @@ const Expenses = () => {
             <p className="text-red-100 text-xs">Total for filtered results</p>
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h3 className="font-bold text-gray-900 mb-4">Quick Stats</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
+            <h3 className="font-bold text-gray-900 dark:text-white mb-4">Quick Stats</h3>
             <div className="space-y-4">
               {['utilities', 'maintenance', 'food', 'other'].map(cat => {
                 const catTotal = filteredExpenses
@@ -340,10 +364,10 @@ const Expenses = () => {
                 return (
                   <div key={cat} className="space-y-1.5">
                     <div className="flex justify-between text-xs font-medium">
-                      <span className="text-gray-500 capitalize">{cat}</span>
-                      <span className="text-gray-900">₹{catTotal}</span>
+                      <span className="text-gray-500 dark:text-gray-400 capitalize">{cat}</span>
+                      <span className="text-gray-900 dark:text-white">₹{catTotal}</span>
                     </div>
-                    <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                    <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
                       <div 
                         className="h-full bg-red-500 rounded-full transition-all duration-500"
                         style={{ width: `${percentage}%` }}
@@ -360,75 +384,75 @@ const Expenses = () => {
       {/* Add Expense Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-900">Add New Expense</h3>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-gray-50 rounded-lg">
-                <X className="w-5 h-5 text-gray-400" />
+          <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl border border-gray-100 dark:border-gray-700">
+            <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Add New Expense</h3>
+              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                <X className="w-5 h-5 text-gray-400 dark:text-gray-500" />
               </button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-700">Title</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Title</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Electricity Bill"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-700">Amount (₹)</label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Amount (₹)</label>
                   <input
                     type="number"
                     required
                     placeholder="0.00"
                     value={formData.amount}
                     onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-700">Category</label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none"
                   >
-                    <option value="utilities">Utilities</option>
-                    <option value="maintenance">Maintenance</option>
-                    <option value="food">Food</option>
-                    <option value="other">Other</option>
+                    <option value="utilities" className="dark:bg-gray-800">Utilities</option>
+                    <option value="maintenance" className="dark:bg-gray-800">Maintenance</option>
+                    <option value="food" className="dark:bg-gray-800">Food</option>
+                    <option value="other" className="dark:bg-gray-800">Other</option>
                   </select>
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-700">Date</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Date</label>
                 <input
                   type="date"
                   required
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-700">Description (Optional)</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Description (Optional)</label>
                 <textarea
                   rows={2}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none"
                 />
               </div>
 
               <div className="pt-4">
                 <button
                   type="submit"
-                  className="w-full py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors"
+                  className="w-full py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-100 dark:shadow-none"
                 >
                   Save Expense
                 </button>
@@ -441,23 +465,23 @@ const Expenses = () => {
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl border border-gray-100 dark:border-gray-700">
             <div className="p-6 text-center">
-              <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Trash2 className="w-8 h-8 text-red-600" />
+              <div className="w-16 h-16 bg-red-50 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-8 h-8 text-red-600 dark:text-red-400" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Expense?</h3>
-              <p className="text-gray-500 mb-6">This action cannot be undone. This expense record will be permanently removed.</p>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Delete Expense?</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-6">This action cannot be undone. This expense record will be permanently removed.</p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setIsDeleteModalOpen(false)}
-                  className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors"
+                  className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors"
+                  className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-100 dark:shadow-none"
                 >
                   Delete
                 </button>

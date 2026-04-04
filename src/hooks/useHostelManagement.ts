@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../AuthContext';
+import { useSubscription } from '../SubscriptionContext';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { toast } from 'sonner';
 
 export const useHostelManagement = () => {
   const { organization, refreshUserData } = useAuth();
+  const { maxProperties } = useSubscription();
   const [isAddHostelModalOpen, setIsAddHostelModalOpen] = useState(false);
   const [addHostelFormData, setAddHostelFormData] = useState({
     name: '',
@@ -18,6 +20,13 @@ export const useHostelManagement = () => {
     if (!organization) return;
 
     try {
+      // Check property limit
+      const hostelsSnap = await getDocs(query(collection(db, 'hostels'), where('organizationId', '==', organization.id)));
+      if (hostelsSnap.size >= maxProperties) {
+        toast.error(`You have reached the limit of ${maxProperties} properties for your current plan. Please upgrade to add more.`);
+        return;
+      }
+
       const hostelData = {
         organizationId: organization.id,
         name: addHostelFormData.name,

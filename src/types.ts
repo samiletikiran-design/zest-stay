@@ -4,6 +4,10 @@ export interface Organization {
   ownerEmail: string;
   ownerPhone?: string;
   createdAt: string;
+  subscriptionStatus: 'trial' | 'active' | 'expired';
+  subscriptionType: 'free' | 'basic_monthly' | 'basic_yearly' | 'growth_monthly' | 'growth_yearly' | 'unlimited_monthly' | 'unlimited_yearly' | 'lifetime' | string;
+  subscriptionStartDate?: string;
+  subscriptionEndDate?: string;
 }
 
 export interface Hostel {
@@ -51,6 +55,7 @@ export interface Member {
   phone: string;
   idProof: string;
   roomId: string;
+  roomNumber?: string; // Added for UI convenience
   bedId: string;
   rentAmount: number;
   deposit: number;
@@ -65,6 +70,7 @@ export interface Payment {
   organizationId: string;
   hostelId: string;
   memberId: string;
+  memberName?: string; // Added for UI convenience
   amount: number;
   date: string;
   method: 'cash' | 'upi' | 'bank';
@@ -98,6 +104,7 @@ export interface Expense {
   id: string;
   organizationId: string;
   hostelId: string;
+  title?: string; // Added for UI convenience
   category: string;
   amount: number;
   description: string;
