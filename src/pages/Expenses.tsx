@@ -23,9 +23,11 @@ import { useSubscription } from '../SubscriptionContext';
 import { Expense } from '../types';
 import { format, startOfMonth, endOfMonth, subMonths, subYears, parseISO } from 'date-fns';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 import { safeFormat } from '../lib/utils';
 
 const Expenses = () => {
+  const navigate = useNavigate();
   const { organization, currentHostel, hostels, setCurrentHostel } = useAuth();
   const { isExpired, canAddExpenses } = useSubscription();
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -115,7 +117,12 @@ const Expenses = () => {
     if (!organization || !currentHostel) return;
 
     if (!canAddExpenses) {
-      toast.error('Your current plan does not allow adding expenses. Please upgrade to Growth plan.');
+      toast.error('Your current plan does not allow adding expenses. Please upgrade to Growth plan.', {
+        action: {
+          label: 'Upgrade Now',
+          onClick: () => navigate('/settings?tab=subscription')
+        }
+      });
       return;
     }
 
@@ -154,7 +161,12 @@ const Expenses = () => {
     if (!expenseToDelete) return;
 
     if (!canAddExpenses) {
-      toast.error('Your current plan does not allow deleting expenses. Please upgrade to Growth plan.');
+      toast.error('Your current plan does not allow deleting expenses. Please upgrade to Growth plan.', {
+        action: {
+          label: 'Upgrade Now',
+          onClick: () => navigate('/settings?tab=subscription')
+        }
+      });
       return;
     }
     try {
@@ -246,7 +258,12 @@ const Expenses = () => {
           <button 
             onClick={() => {
               if (!canAddExpenses) {
-                toast.error('Your current plan does not allow adding expenses. Please upgrade to Growth plan.');
+                toast.error('Your current plan does not allow adding expenses. Please upgrade to Growth plan.', {
+                  action: {
+                    label: 'Upgrade Now',
+                    onClick: () => navigate('/settings?tab=subscription')
+                  }
+                });
                 return;
               }
               setIsModalOpen(true);

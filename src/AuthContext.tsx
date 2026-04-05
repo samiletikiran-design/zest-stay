@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc, setDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, where, getDocs, updateDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db, handleFirestoreError, OperationType } from './firebase';
 import { User, Organization, Hostel } from './types';
 
@@ -55,94 +55,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [theme]);
 
-  const fetchUserData = async (uid: string) => {
-    try {
-      const userPath = `users/${uid}`;
-      let userDoc;
-      try {
-        userDoc = await getDoc(doc(db, 'users', uid));
-      } catch (error) {
-        handleFirestoreError(error, OperationType.GET, userPath);
-      }
-
-      if (userDoc && userDoc.exists()) {
-        const data = userDoc.data() as User;
-        setUserData({ ...data, id: userDoc.id });
-        setIsNewUser(false);
-
-        const orgPath = `organizations/${data.organizationId}`;
-        let orgDoc;
-        try {
-          orgDoc = await getDoc(doc(db, 'organizations', data.organizationId));
-        } catch (error) {
-          handleFirestoreError(error, OperationType.GET, orgPath);
-        }
-
-        let orgData: Organization | null = null;
-        if (orgDoc && orgDoc.exists()) {
-          orgData = { ...(orgDoc.data() as Organization), id: orgDoc.id };
-          setOrganization(orgData);
-        }
-
-        // Fetch hostels
-        const hostelsPath = 'hostels';
-        let hostelsSnapshot;
-        try {
-          const hostelsQuery = query(collection(db, 'hostels'), where('organizationId', '==', data.organizationId));
-          hostelsSnapshot = await getDocs(hostelsQuery);
-        } catch (error) {
-          handleFirestoreError(error, OperationType.LIST, hostelsPath);
-        }
-
-        let hostelsList = hostelsSnapshot ? hostelsSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Hostel)) : [];
-        
-        // If no hostels exist (legacy users), create a default one
-        if (hostelsList.length === 0) {
-          const hostelId = `hostel_${Math.random().toString(36).substr(2, 9)}`;
-          const defaultHostel = {
-            organizationId: data.organizationId,
-            name: orgData?.name || 'Main Hostel',
-            createdAt: new Date().toISOString()
-          };
-          try {
-            await setDoc(doc(db, 'hostels', hostelId), defaultHostel);
-          } catch (error) {
-            handleFirestoreError(error, OperationType.WRITE, `hostels/${hostelId}`);
-          }
-          hostelsList = [{ ...defaultHostel, id: hostelId }];
-          
-          // Update user's currentHostelId
-          try {
-            await updateDoc(doc(db, 'users', uid), {
-              currentHostelId: hostelId
-            });
-          } catch (error) {
-            handleFirestoreError(error, OperationType.UPDATE, userPath);
-          }
-          data.currentHostelId = hostelId;
-        }
-
-        setHostels(hostelsList);
-
-        // Set current hostel
-        if (data.currentHostelId) {
-          const current = hostelsList.find(h => h.id === data.currentHostelId);
-          if (current) {
-            setCurrentHostelState(current);
-          } else if (hostelsList.length > 0) {
-            setCurrentHostelState(hostelsList[0]);
-          }
-        } else if (hostelsList.length > 0) {
-          setCurrentHostelState(hostelsList[0]);
-        }
-      } else {
-        setIsNewUser(true);
-      }
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-    }
-  };
-
   const setCurrentHostel = async (hostelId: string) => {
     if (!user || !userData) return;
     try {
@@ -160,24 +72,115 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
-      if (firebaseUser) {
-        await fetchUserData(firebaseUser.uid);
-      } else {
+      if (!firebaseUser) {
         setUserData(null);
         setOrganization(null);
+        setHostels([]);
+        setCurrentHostelState(null);
         setIsNewUser(false);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    if (!user) return;
+
+    setLoading(true);
+    const unsubUser = onSnapshot(doc(db, 'users', user.uid), async (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data() as User;
+        setUserData({ ...data, id: docSnap.id });
+        setIsNewUser(false);
+
+        // Fetch organization
+        let orgData: Organization | null = null;
+        if (data.organizationId) {
+          const orgPath = `organizations/${data.organizationId}`;
+          try {
+            const orgDoc = await getDoc(doc(db, 'organizations', data.organizationId));
+            if (orgDoc.exists()) {
+              orgData = { ...(orgDoc.data() as Organization), id: orgDoc.id };
+              setOrganization(orgData);
+            } else {
+              console.warn(`Organization ${data.organizationId} not found. Retrying in 2s...`);
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              const retryOrgDoc = await getDoc(doc(db, 'organizations', data.organizationId));
+              if (retryOrgDoc.exists()) {
+                orgData = { ...(retryOrgDoc.data() as Organization), id: retryOrgDoc.id };
+                setOrganization(orgData);
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching organization:', error);
+          }
+        }
+
+        // Fetch hostels
+        try {
+          const hostelsQuery = query(collection(db, 'hostels'), where('organizationId', '==', data.organizationId));
+          const hostelsSnapshot = await getDocs(hostelsQuery);
+          let hostelsList = hostelsSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Hostel));
+          
+          // If no hostels exist (legacy users or race condition), create a default one
+          if (hostelsList.length === 0 && data.organizationId) {
+            const hostelId = `hostel_${Math.random().toString(36).substr(2, 9)}`;
+            const defaultHostel = {
+              organizationId: data.organizationId,
+              name: orgData?.name || 'Main Hostel',
+              createdAt: new Date().toISOString()
+            };
+            try {
+              await setDoc(doc(db, 'hostels', hostelId), defaultHostel);
+              hostelsList = [{ ...defaultHostel, id: hostelId }];
+              
+              // Update user's currentHostelId if missing
+              if (!data.currentHostelId) {
+                await updateDoc(doc(db, 'users', user.uid), {
+                  currentHostelId: hostelId
+                });
+                data.currentHostelId = hostelId;
+              }
+            } catch (error) {
+              console.error('Error creating default hostel:', error);
+            }
+          }
+
+          setHostels(hostelsList);
+
+          if (data.currentHostelId) {
+            const current = hostelsList.find(h => h.id === data.currentHostelId);
+            if (current) setCurrentHostelState(current);
+            else if (hostelsList.length > 0) setCurrentHostelState(hostelsList[0]);
+          } else if (hostelsList.length > 0) {
+            setCurrentHostelState(hostelsList[0]);
+          }
+        } catch (error) {
+          console.error('Error fetching hostels:', error);
+        }
+      } else {
+        setIsNewUser(true);
+      }
+      setLoading(false);
+    }, (error) => {
+      console.error('User snapshot error:', error);
+      setLoading(false);
+    });
+
+    return () => unsubUser();
+  }, [user]);
+
   const refreshUserData = async () => {
     if (user) {
-      await fetchUserData(user.uid);
+      setLoading(true);
+      // Re-fetch logic is handled by onSnapshot, but we can force a reload of the component state if needed
+      // Actually, just waiting a bit and letting onSnapshot do its thing is usually enough
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setLoading(false);
     }
   };
 

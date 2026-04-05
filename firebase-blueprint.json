@@ -103,7 +103,7 @@
         "notes": { "type": "string", "description": "Optional notes" },
         "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the record was created" }
       },
-      "required": ["organizationId", "hostelId", "memberId", "amount", "month", "date", "method", "status"]
+      "required": ["organizationId", "hostelId", "memberId", "memberName", "amount", "month", "date", "method", "status", "createdAt"]
     },
     "Staff": {
       "title": "Staff",

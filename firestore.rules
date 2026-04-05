@@ -126,12 +126,20 @@ service cloud.firestore {
     }
 
     function belongsToOrg(orgId) {
-      return isAuthenticated() && getUserData().organizationId == orgId;
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.organizationId == orgId;
+    }
+
+    function belongsToOrgAfter(orgId) {
+      return isAuthenticated() && 
+             getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.organizationId == orgId;
     }
 
     function isAdmin() {
       return isAuthenticated() &&
-        (getUserData().role == 'admin' ||
+        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
          (request.auth.token.email == "samileti.kiran@gmail.com" && request.auth.token.email_verified == true));
     }
 
@@ -143,8 +151,13 @@ service cloud.firestore {
       return request.resource.data.keys().hasOnly(fields);
     }
 
+    function fieldUnchanged(field) {
+      return !(field in request.resource.data) || 
+             request.resource.data[field] == resource.data[field];
+    }
+
     function isValidEmail(email) {
-      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+      return email is string && email.size() < 100 && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
     }
 
     function isValidDateString(dateStr) {
@@ -161,8 +174,8 @@ service cloud.firestore {
 
     function isValidUser(data) {
       return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
-             isValidEmail(data.email) &&
-             data.phone is string && data.phone.size() >= 10 && data.phone.size() <= 15 &&
+             data.email is string && data.email.size() < 100 &&
+             data.phone is string && data.phone.size() < 20 &&
              data.organizationId is string &&
              data.role in ['admin', 'user'] &&
              data.createdAt is timestamp;
@@ -170,8 +183,9 @@ service cloud.firestore {
 
     function isValidOrganization(data) {
       return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
-             data.subscriptionType in ['Free', 'Basic', 'Growth', 'Unlimited'] &&
-             data.subscriptionStatus in ['active', 'expired', 'trial'] &&
+             data.ownerUid is string &&
+             data.subscriptionType is string && data.subscriptionType.size() < 50 &&
+             data.subscriptionStatus is string && data.subscriptionStatus.size() < 50 &&
              data.createdAt is timestamp;
     }
 
@@ -185,7 +199,7 @@ service cloud.firestore {
       return data.organizationId is string &&
              data.hostelId is string &&
              data.roomNumber is string && data.roomNumber.size() > 0 && data.roomNumber.size() < 20 &&
-             data.totalBeds is number && data.totalBeds > 0 &&
+             data.totalBeds is number && data.totalBeds > 0 && data.totalBeds < 1000 &&
              data.type in ['AC', 'Non-AC'];
     }
 
@@ -204,8 +218,8 @@ service cloud.firestore {
              data.phone is string && data.phone.size() >= 10 && data.phone.size() <= 15 &&
              data.roomId is string &&
              data.bedId is string &&
-             data.rentAmount is number && data.rentAmount >= 0 &&
-             data.deposit is number && data.deposit >= 0 &&
+             data.rentAmount is number && data.rentAmount >= 0 && data.rentAmount < 1000000 &&
+             data.deposit is number && data.deposit >= 0 && data.deposit < 1000000 &&
              isValidDateString(data.joiningDate) &&
              data.billingType in ['anniversary', 'fixed_first'] &&
              data.status in ['active', 'inactive'];
@@ -215,8 +229,8 @@ service cloud.firestore {
       return data.organizationId is string &&
              data.hostelId is string &&
              data.memberId is string &&
-             data.memberName is string &&
-             data.amount is number && data.amount > 0 &&
+             data.memberName is string && data.memberName.size() > 0 && data.memberName.size() < 100 &&
+             data.amount is number && data.amount > 0 && data.amount < 1000000 &&
              isValidMonthString(data.month) &&
              isValidDateString(data.date) &&
              data.method in ['cash', 'upi', 'bank', 'bank_transfer'] &&
@@ -228,9 +242,9 @@ service cloud.firestore {
       return data.organizationId is string &&
              data.hostelId is string &&
              data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
-             data.role is string && data.role.size() > 0 &&
+             data.role is string && data.role.size() > 0 && data.role.size() < 50 &&
              data.phone is string && data.phone.size() >= 10 && data.phone.size() <= 15 &&
-             data.salary is number && data.salary >= 0 &&
+             data.salary is number && data.salary >= 0 && data.salary < 1000000 &&
              isValidDateString(data.joinDate) &&
              data.status in ['active', 'inactive'];
     }
@@ -239,7 +253,7 @@ service cloud.firestore {
       return data.organizationId is string &&
              data.hostelId is string &&
              data.staffId is string &&
-             data.amount is number && data.amount > 0 &&
+             data.amount is number && data.amount > 0 && data.amount < 1000000 &&
              isValidMonthString(data.month) &&
              isValidDateString(data.date) &&
              data.status == 'paid';
@@ -249,7 +263,7 @@ service cloud.firestore {
       return data.organizationId is string &&
              data.hostelId is string &&
              data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
-             data.amount is number && data.amount > 0 &&
+             data.amount is number && data.amount > 0 && data.amount < 1000000 &&
              data.category in ['utilities', 'maintenance', 'food', 'other'] &&
              isValidDateString(data.date);
     }
@@ -262,68 +276,92 @@ service cloud.firestore {
       allow read: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId) && isValidUser(request.resource.data);
       allow update: if (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data) &&
+                      fieldUnchanged('organizationId') && fieldUnchanged('createdAt') &&
                       (isOwner(userId) ? request.resource.data.role == resource.data.role : true);
     }
 
     match /organizations/{orgId} {
-      allow read: if belongsToOrg(orgId) || isAdmin();
-      allow create: if isAuthenticated() && isValidOrganization(request.resource.data);
-      allow update: if isAdmin() && isValidOrganization(request.resource.data);
+      allow read: if isAuthenticated() && (
+        (resource != null && resource.data.ownerUid == request.auth.uid) || 
+        belongsToOrg(orgId) || 
+        isAdmin()
+      );
+      allow create: if isAuthenticated() && isValidOrganization(request.resource.data) && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        (resource != null && resource.data.ownerUid == request.auth.uid) || 
+        isAdmin()
+      ) && isValidOrganization(request.resource.data) && fieldUnchanged('createdAt') && fieldUnchanged('ownerUid');
     }
 
     match /hostels/{hostelId} {
-      allow read: if belongsToOrg(resource.data.organizationId) || isAdmin();
-      allow create: if belongsToOrg(request.resource.data.organizationId) && isValidHostel(request.resource.data);
-      allow update: if belongsToOrg(resource.data.organizationId) && isValidHostel(request.resource.data);
+      allow read: if isAuthenticated() && (
+        (resource != null && belongsToOrg(resource.data.organizationId)) || 
+        isAdmin()
+      );
+      allow create: if isAuthenticated() && (
+        belongsToOrg(request.resource.data.organizationId) || 
+        belongsToOrgAfter(request.resource.data.organizationId)
+      ) && isValidHostel(request.resource.data);
+      allow update: if isAuthenticated() && (
+        (resource != null && belongsToOrg(resource.data.organizationId)) || 
+        isAdmin()
+      ) && isValidHostel(request.resource.data) && fieldUnchanged('organizationId') && fieldUnchanged('createdAt');
       allow delete: if isAdmin();
     }
 
     match /rooms/{roomId} {
       allow read: if belongsToOrg(resource.data.organizationId) || isAdmin();
       allow create: if belongsToOrg(request.resource.data.organizationId) && isValidRoom(request.resource.data);
-      allow update: if belongsToOrg(resource.data.organizationId) && isValidRoom(request.resource.data);
+      allow update: if belongsToOrg(request.resource.data.organizationId) && isValidRoom(request.resource.data) && 
+                      fieldUnchanged('organizationId') && fieldUnchanged('hostelId');
       allow delete: if belongsToOrg(resource.data.organizationId) || isAdmin();
     }
 
     match /beds/{bedId} {
       allow read: if belongsToOrg(resource.data.organizationId) || isAdmin();
       allow create: if belongsToOrg(request.resource.data.organizationId) && isValidBed(request.resource.data);
-      allow update: if belongsToOrg(resource.data.organizationId) && isValidBed(request.resource.data);
+      allow update: if belongsToOrg(resource.data.organizationId) && isValidBed(request.resource.data) && 
+                      fieldUnchanged('organizationId') && fieldUnchanged('hostelId') && fieldUnchanged('roomId');
       allow delete: if belongsToOrg(resource.data.organizationId) || isAdmin();
     }
 
     match /members/{memberId} {
       allow read: if belongsToOrg(resource.data.organizationId) || isAdmin();
       allow create: if belongsToOrg(request.resource.data.organizationId) && isValidMember(request.resource.data);
-      allow update: if belongsToOrg(resource.data.organizationId) && isValidMember(request.resource.data);
+      allow update: if belongsToOrg(resource.data.organizationId) && isValidMember(request.resource.data) && 
+                      fieldUnchanged('organizationId') && fieldUnchanged('hostelId');
       allow delete: if belongsToOrg(resource.data.organizationId) || isAdmin();
     }
 
     match /payments/{paymentId} {
       allow read: if belongsToOrg(resource.data.organizationId) || isAdmin();
       allow create: if belongsToOrg(request.resource.data.organizationId) && isValidPayment(request.resource.data);
-      allow update: if belongsToOrg(resource.data.organizationId) && isValidPayment(request.resource.data);
+      allow update: if belongsToOrg(resource.data.organizationId) && isValidPayment(request.resource.data) && 
+                      fieldUnchanged('organizationId') && fieldUnchanged('hostelId') && fieldUnchanged('memberId') && fieldUnchanged('createdAt');
       allow delete: if belongsToOrg(resource.data.organizationId) || isAdmin();
     }
 
     match /staff/{staffId} {
       allow read: if belongsToOrg(resource.data.organizationId) || isAdmin();
       allow create: if belongsToOrg(request.resource.data.organizationId) && isValidStaff(request.resource.data);
-      allow update: if belongsToOrg(resource.data.organizationId) && isValidStaff(request.resource.data);
+      allow update: if belongsToOrg(resource.data.organizationId) && isValidStaff(request.resource.data) && 
+                      fieldUnchanged('organizationId') && fieldUnchanged('hostelId');
       allow delete: if belongsToOrg(resource.data.organizationId) || isAdmin();
     }
 
     match /staffSalaries/{salaryId} {
       allow read: if belongsToOrg(resource.data.organizationId) || isAdmin();
       allow create: if belongsToOrg(request.resource.data.organizationId) && isValidSalaryPayment(request.resource.data);
-      allow update: if belongsToOrg(resource.data.organizationId) && isValidSalaryPayment(request.resource.data);
+      allow update: if belongsToOrg(resource.data.organizationId) && isValidSalaryPayment(request.resource.data) && 
+                      fieldUnchanged('organizationId') && fieldUnchanged('hostelId') && fieldUnchanged('staffId');
       allow delete: if belongsToOrg(resource.data.organizationId) || isAdmin();
     }
 
     match /expenses/{expenseId} {
       allow read: if belongsToOrg(resource.data.organizationId) || isAdmin();
       allow create: if belongsToOrg(request.resource.data.organizationId) && isValidExpense(request.resource.data);
-      allow update: if belongsToOrg(resource.data.organizationId) && isValidExpense(request.resource.data);
+      allow update: if belongsToOrg(resource.data.organizationId) && isValidExpense(request.resource.data) && 
+                      fieldUnchanged('organizationId') && fieldUnchanged('hostelId');
       allow delete: if belongsToOrg(resource.data.organizationId) || isAdmin();
     }
   }

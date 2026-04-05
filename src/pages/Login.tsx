@@ -189,7 +189,7 @@ const Login = () => {
       if (err.code === 'auth/invalid-credential' || err.message?.includes('auth/invalid-credential')) {
         errorMessage = 'Invalid verification code or session expired. Please try again.';
       } else if (err.code === 'auth/code-expired') {
-        errorMessage = 'The verification code has expired. Please request a new one.';
+        errorMessage = 'The verification code has expired. Please click "Resend code" to get a new one.';
       } else if (err.code === 'auth/invalid-verification-code') {
         errorMessage = 'Invalid verification code. Please check and try again.';
       }

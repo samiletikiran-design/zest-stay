@@ -21,7 +21,7 @@ import {
   Smartphone
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
-import { collection, query, where, onSnapshot, addDoc, doc, updateDoc, deleteDoc, writeBatch, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, doc, updateDoc, deleteDoc, writeBatch, orderBy, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useAuth } from '../AuthContext';
 import { useSubscription } from '../SubscriptionContext';
@@ -378,6 +378,7 @@ const Members = () => {
           method: rentFormData.method,
           status: status,
           notes: rentFormData.notes,
+          createdAt: serverTimestamp(),
         });
       } catch (error) {
         handleFirestoreError(error, OperationType.CREATE, 'payments');

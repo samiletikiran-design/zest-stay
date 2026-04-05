@@ -18,7 +18,7 @@ import {
   Building2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, where, onSnapshot, addDoc, doc, deleteDoc, writeBatch, orderBy, updateDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, doc, deleteDoc, writeBatch, orderBy, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useAuth } from '../AuthContext';
 import { useSubscription } from '../SubscriptionContext';
@@ -37,6 +37,7 @@ function cn(...inputs: ClassValue[]) {
 }
 
 const Rooms = () => {
+  const navigate = useNavigate();
   const { organization, currentHostel, hostels, setCurrentHostel } = useAuth();
   const { isExpired, maxRooms } = useSubscription();
   const { 
@@ -46,7 +47,6 @@ const Rooms = () => {
     setAddHostelFormData, 
     handleAddHostel 
   } = useHostelManagement();
-  const navigate = useNavigate();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [beds, setBeds] = useState<BedType[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -185,7 +185,7 @@ const Rooms = () => {
           method: rentFormData.method,
           status: status,
           notes: rentFormData.notes,
-          createdAt: new Date().toISOString(),
+          createdAt: serverTimestamp(),
         });
       } catch (error) {
         handleFirestoreError(error, OperationType.CREATE, 'payments');
@@ -240,7 +240,12 @@ const Rooms = () => {
       const limitMessage = organization?.subscriptionType?.includes('unlimited') 
         ? "You have reached the maximum capacity for your current plan. Please contact sales for enterprise solutions."
         : `You have reached the limit of ${maxRooms} rooms for your current plan. Please upgrade to add more rooms.`;
-      toast.error(limitMessage);
+      toast.error(limitMessage, {
+        action: {
+          label: 'Upgrade Now',
+          onClick: () => navigate('/settings?tab=subscription')
+        }
+      });
       return;
     }
 

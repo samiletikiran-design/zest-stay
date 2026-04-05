@@ -14,7 +14,7 @@ export default defineConfig(({mode}) => {
           registerType: 'autoUpdate',
           includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
           manifest: {
-            name: 'Zest Stay - Hostel Management',
+            name: 'Zest Stay',
             short_name: 'Zest Stay',
             description: 'Smart PG & Hostel Management System',
             theme_color: '#4f46e5',

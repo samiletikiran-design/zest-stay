@@ -96,6 +96,7 @@ const Signup = () => {
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Failed to send email OTP');
+        
         toast.success('OTP sent to your email!');
       }
       setStep('verify');
@@ -114,17 +115,21 @@ const Signup = () => {
     setLoading(true);
 
     try {
+      let currentUser = auth.currentUser;
+      
       // 1. Verify OTP
       if (verificationMethod === 'phone') {
         if (!confirmationResult) throw new Error('No confirmation result found');
         try {
           await confirmationResult.confirm(otp);
+          currentUser = auth.currentUser; // Update local user after sign-in
         } catch (otpErr: any) {
           console.error('OTP Verification failed:', otpErr);
           if (otpErr.code === 'auth/invalid-credential' || otpErr.message?.includes('auth/invalid-credential')) {
             throw new Error('Invalid verification code or session expired. Please try again.');
           } else if (otpErr.code === 'auth/code-expired') {
-            throw new Error('The verification code has expired. Please request a new one.');
+            setError('The verification code has expired. Please click "Resend code" to get a new one.');
+            return;
           }
           throw otpErr;
         }
@@ -139,54 +144,45 @@ const Signup = () => {
         
         if (data.token) {
           await signInWithCustomToken(auth, data.token);
+          currentUser = auth.currentUser; // Update local user after sign-in
         } else {
           throw new Error('Verification successful but no token received.');
         }
       }
 
       // 2. Create Firebase Auth User (if not already created by phone auth)
-      // Note: Phone auth confirmation already signs the user in.
-      // If email verification, we create user with email/password.
-      let userCredential;
+      if (!currentUser) throw new Error('Failed to identify user after verification');
+      
       if (verificationMethod === 'email') {
-        // User is already signed in via custom token.
         // Link email/password so they can use both.
-        if (!auth.currentUser) throw new Error('User not signed in after email verification');
-        
         const credential = EmailAuthProvider.credential(email, password);
         try {
-          await linkWithCredential(auth.currentUser, credential);
+          await linkWithCredential(currentUser, credential);
         } catch (linkErr: any) {
           console.error('Linking failed:', linkErr);
           // If it fails because it's already linked or something, we can ignore if they are signed in
         }
       } else {
         // For phone auth, user is already signed in. Link email/password so they can use both.
-        if (!auth.currentUser) throw new Error('User not signed in after phone verification');
-        
         const credential = EmailAuthProvider.credential(email, password);
         try {
-          await linkWithCredential(auth.currentUser, credential);
+          await linkWithCredential(currentUser, credential);
         } catch (linkErr: any) {
           console.error('Linking failed:', linkErr);
           if (linkErr.code === 'auth/email-already-in-use') {
             throw new Error('This email is already associated with another account. Please use a different email or sign in.');
           } else if (linkErr.code === 'auth/credential-already-in-use') {
             // This phone is already linked to another email? Or this email is already linked?
-            // Usually means the user already exists.
           } else if (linkErr.code === 'auth/invalid-credential' || linkErr.message?.includes('auth/invalid-credential')) {
-            // This can happen if the password doesn't meet requirements or if the session is stale
             throw new Error('Invalid email or password format. Please check your details and try again.');
           } else {
-            // For other linking errors, we might want to stop if it's critical
             throw new Error(`Failed to link email: ${linkErr.message}`);
           }
         }
-        userCredential = { user: auth.currentUser };
       }
 
-      const user = userCredential.user;
-      await updateProfile(user, { displayName: name });
+      if (!currentUser) throw new Error('Failed to identify user for Firestore records');
+      await updateProfile(currentUser, { displayName: name });
 
       const orgId = `org_${Math.random().toString(36).substr(2, 9)}`;
       const hostelId = `hostel_${Math.random().toString(36).substr(2, 9)}`;
@@ -195,9 +191,9 @@ const Signup = () => {
       const cleanPhone = phone.trim().replace(/[\s-]/g, '').replace(/^\+91/, '');
       const batch = writeBatch(db);
 
-      const userRef = doc(db, 'users', user.uid);
+      const userRef = doc(db, 'users', currentUser.uid);
       batch.set(userRef, {
-        email: email || user.email || '',
+        email: email || currentUser.email || '',
         name,
         phone: `+91${cleanPhone}`,
         organizationId: orgId,
@@ -209,7 +205,8 @@ const Signup = () => {
       const orgRef = doc(db, 'organizations', orgId);
       batch.set(orgRef, {
         name: orgName,
-        ownerEmail: email || user.email || '',
+        ownerUid: currentUser.uid,
+        ownerEmail: email || currentUser.email || '',
         ownerPhone: `+91${cleanPhone}`,
         createdAt: serverTimestamp(),
         subscriptionStatus: 'active',
@@ -266,7 +263,7 @@ const Signup = () => {
           {step === 'info' ? (
             <>
               Already have an account?{' '}
-              <Link to="/login" className="font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">
+              <Link to="/signin" className="font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">
                 Sign in
               </Link>
             </>

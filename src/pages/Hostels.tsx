@@ -17,6 +17,7 @@ import { useSubscription } from '../SubscriptionContext';
 import { Hostel } from '../types';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { safeFormat } from '../lib/utils';
 import { useHostelManagement } from '../hooks/useHostelManagement';
@@ -29,6 +30,7 @@ function cn(...inputs: ClassValue[]) {
 }
 
 const Hostels = () => {
+  const navigate = useNavigate();
   const { organization, hostels, refreshUserData } = useAuth();
   const { isExpired, maxProperties } = useSubscription();
   const { 
@@ -142,7 +144,12 @@ const Hostels = () => {
               return;
             }
             if (hostels.length >= maxProperties) {
-              toast.error(`You have reached the limit of ${maxProperties} properties for your current plan. Please upgrade to a higher plan to add more hostels.`);
+              toast.error(`You have reached the limit of ${maxProperties} properties for your current plan. Please upgrade to a higher plan to add more hostels.`, {
+                action: {
+                  label: 'Upgrade Now',
+                  onClick: () => navigate('/settings?tab=subscription')
+                }
+              });
               return;
             }
             setIsAddHostelModalOpen(true);

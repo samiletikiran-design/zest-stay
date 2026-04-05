@@ -22,9 +22,11 @@ import { useSubscription } from '../SubscriptionContext';
 import { Staff, SalaryPayment } from '../types';
 import { format, addMonths, isBefore, startOfMonth, parseISO, isAfter } from 'date-fns';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 import { safeFormat } from '../lib/utils';
 
 const StaffPage = () => {
+  const navigate = useNavigate();
   const { organization, currentHostel, hostels, setCurrentHostel } = useAuth();
   const { isExpired, canAddStaff } = useSubscription();
   const [staff, setStaff] = useState<Staff[]>([]);
@@ -137,7 +139,12 @@ const StaffPage = () => {
     if (!organization || !currentHostel || !selectedStaff) return;
 
     if (!canAddStaff) {
-      toast.error('Your current plan does not allow recording salaries. Please upgrade to Unlimited plan.');
+      toast.error('Your current plan does not allow recording salaries. Please upgrade to Unlimited plan.', {
+        action: {
+          label: 'Upgrade Now',
+          onClick: () => navigate('/settings?tab=subscription')
+        }
+      });
       return;
     }
 
@@ -170,7 +177,12 @@ const StaffPage = () => {
     if (!organization || !selectedStaff) return;
 
     if (!canAddStaff) {
-      toast.error('Your current plan does not allow editing staff. Please upgrade to Unlimited plan.');
+      toast.error('Your current plan does not allow editing staff. Please upgrade to Unlimited plan.', {
+        action: {
+          label: 'Upgrade Now',
+          onClick: () => navigate('/settings?tab=subscription')
+        }
+      });
       return;
     }
 
@@ -196,7 +208,12 @@ const StaffPage = () => {
     if (!staffToDelete) return;
 
     if (!canAddStaff) {
-      toast.error('Your current plan does not allow deleting staff. Please upgrade to Unlimited plan.');
+      toast.error('Your current plan does not allow deleting staff. Please upgrade to Unlimited plan.', {
+        action: {
+          label: 'Upgrade Now',
+          onClick: () => navigate('/settings?tab=subscription')
+        }
+      });
       return;
     }
     try {
@@ -254,7 +271,12 @@ const StaffPage = () => {
           <button 
             onClick={() => {
               if (!canAddStaff) {
-                toast.error('Your current plan does not allow adding staff. Please upgrade to Unlimited plan.');
+                toast.error('Your current plan does not allow adding staff. Please upgrade to Unlimited plan.', {
+                  action: {
+                    label: 'Upgrade Now',
+                    onClick: () => navigate('/settings?tab=subscription')
+                  }
+                });
                 return;
               }
               setIsModalOpen(true);

@@ -20,7 +20,7 @@ import {
   ArrowRight,
   Building2
 } from 'lucide-react';
-import { collection, query, where, onSnapshot, addDoc, doc, updateDoc, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, doc, updateDoc, orderBy, limit, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useAuth } from '../AuthContext';
 import { useSubscription } from '../SubscriptionContext';
@@ -187,6 +187,7 @@ const Payments = () => {
           method: formData.method,
           status: status,
           notes: formData.notes,
+          createdAt: serverTimestamp(),
         });
       } catch (error) {
         handleFirestoreError(error, OperationType.CREATE, 'payments');

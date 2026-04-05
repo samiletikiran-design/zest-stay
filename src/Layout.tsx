@@ -51,7 +51,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const handleLogout = async () => {
     await auth.signOut();
-    navigate('/login');
+    navigate('/signin');
   };
 
   const navItems = [
@@ -185,46 +185,22 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               </div>
             </button>
 
-            <div className="relative group">
-              <div className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-all">
-                <div className="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-sm">
+            <Link 
+              to="/settings"
+              onClick={() => setIsSidebarOpen(false)}
+              className="relative block"
+            >
+              <div className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-all group">
+                <div className="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-sm group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50 transition-colors">
                   {userData?.name?.charAt(0) || 'U'}
                 </div>
                 <div className="flex flex-col overflow-hidden flex-1">
-                  <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">{userData?.name}</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{userData?.name}</span>
                   <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{userData?.email}</span>
                 </div>
                 <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-indigo-600 transition-colors" />
               </div>
-              
-              {/* Profile Dropdown/Menu on Hover */}
-              <div className="absolute bottom-full left-0 w-full mb-2 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[70] overflow-hidden">
-                <Link 
-                  to="/settings" 
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <SettingsIcon className="w-4 h-4" />
-                  <span>Settings</span>
-                </Link>
-                <Link 
-                  to="/pricing" 
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <Zap className="w-4 h-4" />
-                  <span>Subscription</span>
-                </Link>
-                <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
-                <button 
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Sign Out</span>
-                </button>
-              </div>
-            </div>
+            </Link>
           </div>
         </div>
       </aside>

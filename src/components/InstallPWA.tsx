@@ -1,81 +1,109 @@
 import React, { useState, useEffect } from 'react';
 import { Download, X, Smartphone } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { toast } from 'sonner';
+import { useLocation } from 'react-router-dom';
 
 const InstallPWA: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     // Check if it's mobile
     const checkMobile = () => {
       const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
-      return /android|iphone|ipad|ipod/i.test(userAgent.toLowerCase());
+      const isMobileUA = /android|iphone|ipad|ipod|windows phone|iemobile|mobile/i.test(userAgent.toLowerCase());
+      const isSmallScreen = window.innerWidth < 1024; // lg breakpoint in Tailwind
+      return isMobileUA || isSmallScreen;
     };
     
-    setIsMobile(checkMobile());
+    const mobile = checkMobile();
+    setIsMobile(mobile);
+
+    const handleResize = () => {
+      const isNowMobile = checkMobile();
+      setIsMobile(isNowMobile);
+    };
+    window.addEventListener('resize', handleResize);
 
     const handleBeforeInstallPrompt = (e: Event) => {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
       // Stash the event so it can be triggered later.
       setDeferredPrompt(e);
-      // Show the install banner
-      setIsVisible(true);
+      
+      // Check if already installed
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+      
+      if (!isStandalone && mobile) {
+        setIsVisible(true);
+      }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
     // Check if already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+    
+    if (isStandalone) {
       setIsVisible(false);
+    } else if (mobile) {
+      // If mobile and not standalone, show the banner after a short delay
+      const timer = setTimeout(() => {
+        const stillStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+        if (!stillStandalone) {
+          setIsVisible(true);
+        }
+      }, 1000);
+      return () => clearTimeout(timer);
     }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('resize', handleResize);
     };
-  }, []);
+  }, [isMobile]);
+
+  // Re-show on dashboard if hidden
+  useEffect(() => {
+    if (location.pathname === '/dashboard' || location.pathname === '/') {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+      if (!isStandalone && isMobile) {
+        setIsVisible(true);
+      }
+    }
+  }, [location.pathname, isMobile]);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-
-    // Show the install prompt
-    deferredPrompt.prompt();
-
-    // Wait for the user to respond to the prompt
-    const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === 'accepted') {
-      console.log('User accepted the install prompt');
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      setDeferredPrompt(null);
+      setIsVisible(false);
     } else {
-      console.log('User dismissed the install prompt');
+      const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+      if (isIOS) {
+        toast.info(
+          "To install: Tap the Share button in your browser's toolbar and then 'Add to Home Screen'.",
+          { duration: 6000 }
+        );
+      } else {
+        toast.info(
+          "To install: Open your browser menu and select 'Install App' or 'Add to Home Screen'.",
+          { duration: 6000 }
+        );
+      }
+      setIsVisible(false);
     }
-
-    // We've used the prompt, and can't use it again, throw it away
-    setDeferredPrompt(null);
-    setIsVisible(false);
   };
 
   const handleDismiss = () => {
     setIsVisible(false);
-    // Optionally save to localStorage to not show again for some time
-    localStorage.setItem('pwa-prompt-dismissed', Date.now().toString());
   };
 
-  // Don't show if already dismissed recently (e.g., last 24 hours)
-  useEffect(() => {
-    const lastDismissed = localStorage.getItem('pwa-prompt-dismissed');
-    if (lastDismissed) {
-      const diff = Date.now() - parseInt(lastDismissed);
-      const oneDay = 24 * 60 * 60 * 1000;
-      if (diff < oneDay) {
-        setIsVisible(false);
-      }
-    }
-  }, [isVisible]);
-
-  if (!isVisible || !deferredPrompt) return null;
+  if (!isVisible || !isMobile) return null;
 
   return (
     <AnimatePresence>
@@ -83,7 +111,7 @@ const InstallPWA: React.FC = () => {
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
-        className="fixed bottom-6 left-4 right-4 z-[100] md:left-auto md:right-6 md:w-96"
+        className="fixed bottom-20 left-4 right-4 z-[100] md:bottom-6 md:left-auto md:right-6 md:w-96"
       >
         <div className="bg-indigo-600 dark:bg-indigo-500 text-white p-4 rounded-2xl shadow-2xl border border-indigo-400/30 backdrop-blur-lg flex items-center gap-4">
           <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">

@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../AuthContext';
 import { useSubscription } from '../SubscriptionContext';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 export const useHostelManagement = () => {
+  const navigate = useNavigate();
   const { organization, refreshUserData } = useAuth();
   const { maxProperties } = useSubscription();
   const [isAddHostelModalOpen, setIsAddHostelModalOpen] = useState(false);
@@ -23,7 +25,12 @@ export const useHostelManagement = () => {
       // Check property limit
       const hostelsSnap = await getDocs(query(collection(db, 'hostels'), where('organizationId', '==', organization.id)));
       if (hostelsSnap.size >= maxProperties) {
-        toast.error(`You have reached the limit of ${maxProperties} properties for your current plan. Please upgrade to add more.`);
+        toast.error(`You have reached the limit of ${maxProperties} properties for your current plan. Please upgrade to add more.`, {
+          action: {
+            label: 'Upgrade Now',
+            onClick: () => navigate('/settings?tab=subscription')
+          }
+        });
         return;
       }
 
@@ -31,7 +38,7 @@ export const useHostelManagement = () => {
         organizationId: organization.id,
         name: addHostelFormData.name,
         address: addHostelFormData.address,
-        createdAt: new Date().toISOString(),
+        createdAt: serverTimestamp(),
       };
 
       try {

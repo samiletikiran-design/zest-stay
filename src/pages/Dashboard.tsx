@@ -19,7 +19,7 @@ import {
   MessageSquare,
   Smartphone
 } from 'lucide-react';
-import { collection, query, where, onSnapshot, orderBy, limit, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, limit, getDocs, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useAuth } from '../AuthContext';
 import { useSubscription } from '../SubscriptionContext';
@@ -372,6 +372,7 @@ const Dashboard = () => {
         method: collectRentFormData.method,
         status: status,
         notes: collectRentFormData.notes,
+        createdAt: serverTimestamp(),
       });
 
       // Only update if it's fully paid or if it's the latest month
@@ -417,7 +418,7 @@ const Dashboard = () => {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => refreshUserData()}
               className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors"
             >
               Retry Loading

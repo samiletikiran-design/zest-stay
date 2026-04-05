@@ -34,7 +34,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   }
 
   if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/signin" state={{ from: location }} replace />;
   }
 
   return <Layout>{children}</Layout>;
@@ -67,7 +67,7 @@ export default function App() {
         <Router>
           <Routes>
             <Route path="/" element={<HomeRoute />} />
-            <Route path="/login" element={<Login />} />
+            <Route path="/signin" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route
               path="/dashboard"

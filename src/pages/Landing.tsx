@@ -137,7 +137,7 @@ const Landing = () => {
                 </Link>
               ) : (
                 <div className="flex items-center gap-4">
-                  <Link to="/login" className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Login</Link>
+                  <Link to="/signin" className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Login</Link>
                   <Link 
                     to="/signup" 
                     className="bg-indigo-600 text-white px-6 py-2 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 dark:shadow-none"
