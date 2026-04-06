@@ -57,61 +57,57 @@ const Expenses = () => {
     const orgId = organization.id;
     const hostelId = currentHostel.id;
 
-    const fetchExpenses = async () => {
-      setLoading(true);
-      try {
-        const today = new Date();
-        let startDate: Date;
-        let endDate = new Date();
+    const today = new Date();
+    let startDate: Date;
+    let endDate = new Date();
 
-        switch (timeFilter) {
-          case 'past_month':
-            startDate = startOfMonth(subMonths(today, 1));
-            endDate = endOfMonth(subMonths(today, 1));
-            break;
-          case '3_months':
-            startDate = subMonths(today, 3);
-            break;
-          case '6_months':
-            startDate = subMonths(today, 6);
-            break;
-          case '1_year':
-            startDate = subYears(today, 1);
-            break;
-          case 'custom':
-            startDate = customRange.start ? parseISO(customRange.start) : subMonths(today, 1);
-            endDate = customRange.end ? parseISO(customRange.end) : today;
-            break;
-          default: // monthly
-            startDate = startOfMonth(today);
-            endDate = endOfMonth(today);
-        }
+    switch (timeFilter) {
+      case 'past_month':
+        startDate = startOfMonth(subMonths(today, 1));
+        endDate = endOfMonth(subMonths(today, 1));
+        break;
+      case '3_months':
+        startDate = subMonths(today, 3);
+        break;
+      case '6_months':
+        startDate = subMonths(today, 6);
+        break;
+      case '1_year':
+        startDate = subYears(today, 1);
+        break;
+      case 'custom':
+        startDate = customRange.start ? parseISO(customRange.start) : subMonths(today, 1);
+        endDate = customRange.end ? parseISO(customRange.end) : today;
+        break;
+      default: // monthly
+        startDate = startOfMonth(today);
+        endDate = endOfMonth(today);
+    }
 
-        const startStr = format(startDate, 'yyyy-MM-dd');
-        const endStr = format(endDate, 'yyyy-MM-dd');
+    const startStr = format(startDate, 'yyyy-MM-dd');
+    const endStr = format(endDate, 'yyyy-MM-dd');
 
-        const q = query(
-          collection(db, 'expenses'),
-          where('organizationId', '==', orgId),
-          where('hostelId', '==', hostelId),
-          where('date', '>=', startStr),
-          where('date', '<=', endStr),
-          orderBy('date', 'desc')
-        );
+    const q = query(
+      collection(db, 'expenses'),
+      where('organizationId', '==', orgId),
+      where('hostelId', '==', hostelId),
+      where('date', '>=', startStr),
+      where('date', '<=', endStr),
+      orderBy('date', 'desc')
+    );
 
-        const snap = await getDocs(q);
-        const list: Expense[] = [];
-        snap.forEach(doc => list.push({ ...doc.data() as Expense, id: doc.id }));
-        setExpenses(list);
-      } catch (error) {
-        handleFirestoreError(error, OperationType.LIST, 'expenses');
-        toast.error('Failed to load expenses.');
-      } finally {
-        setLoading(false);
-      }
-    };
+    const unsubscribe = onSnapshot(q, (snap) => {
+      const list: Expense[] = [];
+      snap.forEach(doc => list.push({ ...doc.data() as Expense, id: doc.id }));
+      setExpenses(list);
+      setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'expenses');
+      toast.error('Failed to load expenses.');
+      setLoading(false);
+    });
 
-    fetchExpenses();
+    return () => unsubscribe();
   }, [organization, currentHostel, timeFilter, customRange]);
 
   const handleSubmit = async (e: React.FormEvent) => {

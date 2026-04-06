@@ -77,7 +77,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       isExpired = true;
     }
 
-    const plan = organization.subscriptionType || 'free';
+    const plan = (organization.subscriptionType || 'free').toLowerCase();
     const isUnlimited = plan.includes('unlimited') || plan === 'lifetime';
     const isGrowth = plan.includes('growth') || isUnlimited;
     const isBasic = plan.includes('basic') || isGrowth;

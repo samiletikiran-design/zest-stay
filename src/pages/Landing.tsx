@@ -176,7 +176,7 @@ const Landing = () => {
                 to="/signup" 
                 className="w-full sm:w-auto bg-indigo-600 text-white px-8 py-4 rounded-2xl text-lg font-bold hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 dark:shadow-none flex items-center justify-center gap-2"
               >
-                Start Free Trial
+                Get Started for Free
                 <ArrowRight className="w-5 h-5" />
               </Link>
               <a 
@@ -197,12 +197,18 @@ const Landing = () => {
           >
             <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-[2.5rem] blur opacity-20"></div>
             <div className="relative bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-[2rem] shadow-2xl overflow-hidden">
-              <img 
-                src="https://picsum.photos/seed/dashboard/1200/800" 
-                alt="App Dashboard" 
-                className="w-full h-auto"
-                referrerPolicy="no-referrer"
-              />
+              <picture>
+                <source 
+                  media="(max-width: 768px)" 
+                  srcSet="https://firebasestorage.googleapis.com/v0/b/zest-stay.firebasestorage.app/o/Zest%20Stay%20Dashboard%20Mobile.png?alt=media&token=18d41d34-0bcc-4fc4-8ec7-4b5d274543c5" 
+                />
+                <img 
+                  src="https://firebasestorage.googleapis.com/v0/b/zest-stay.firebasestorage.app/o/Zest%20Stay%20Dashboard.png?alt=media&token=85c3d513-738b-45df-a529-8142ba7502f4" 
+                  alt="App Dashboard" 
+                  className="w-full h-auto"
+                  referrerPolicy="no-referrer"
+                />
+              </picture>
             </div>
           </motion.div>
         </div>
@@ -340,7 +346,7 @@ const Landing = () => {
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-8">Ready to transform your PG management?</h2>
           <p className="text-xl text-indigo-100 mb-10 max-w-2xl mx-auto">
             Join hundreds of PG owners who have simplified their lives with Zest Stay. 
-            Start your 14-day free trial today.
+            Get started with our free lifetime plan today.
           </p>
           <Link 
             to="/signup" 

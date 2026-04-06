@@ -115,7 +115,7 @@ const Rooms = () => {
     );
 
     const unsubMembers = onSnapshot(
-      query(collection(db, 'members'), where('organizationId', '==', orgId), where('hostelId', '==', hostelId)),
+      query(collection(db, 'members'), where('organizationId', '==', orgId), where('hostelId', '==', hostelId), where('status', '==', 'active')),
       (snap) => {
         const list: Member[] = [];
         snap.forEach(doc => list.push({ ...doc.data() as Member, id: doc.id }));
@@ -407,7 +407,10 @@ const Rooms = () => {
 
   const filteredRooms = rooms.filter(room => {
     const roomBeds = beds.filter(b => b.roomId === room.id);
-    const occupiedCount = roomBeds.filter(b => b.status === 'occupied').length;
+    const occupiedCount = roomBeds.filter(b => {
+      const hasActiveMember = members.some(m => m.bedId === b.id && m.status === 'active');
+      return b.status === 'occupied' && hasActiveMember;
+    }).length;
     
     const matchesStatus = filter === 'all' || 
       (filter === 'vacant' && occupiedCount < room.totalBeds) || 
@@ -530,7 +533,10 @@ const Rooms = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredRooms.map((room) => {
             const roomBeds = beds.filter(b => b.roomId === room.id);
-            const occupiedCount = roomBeds.filter(b => b.status === 'occupied').length;
+            const occupiedCount = roomBeds.filter(b => {
+              const hasActiveMember = members.some(m => m.bedId === b.id && m.status === 'active');
+              return b.status === 'occupied' && hasActiveMember;
+            }).length;
             const occupancyRate = (occupiedCount / room.totalBeds) * 100;
 
             return (
@@ -604,32 +610,34 @@ const Rooms = () => {
                   <div className="grid grid-cols-2 gap-3">
                     {roomBeds.sort((a, b) => a.bedNumber.localeCompare(b.bedNumber)).map((bed) => {
                       const member = members.find(m => m.bedId === bed.id && m.status === 'active');
+                      const isOccupied = bed.status === 'occupied' && !!member;
+                      
                       return (
                         <div 
                           key={bed.id} 
                           onClick={() => {
-                            if (bed.status === 'occupied' && member) {
+                            if (isOccupied && member) {
                               setSelectedMember(member);
                               setIsDetailModalOpen(true);
-                            } else if (bed.status === 'vacant') {
+                            } else if (!isOccupied) {
                               navigate(`/members?add=true&roomId=${room.id}&bedId=${bed.id}`);
                             }
                           }}
                           className={cn(
                             "flex items-center gap-2 p-2 rounded-lg border text-xs font-medium transition-colors cursor-pointer",
-                            bed.status === 'occupied' 
+                            isOccupied 
                               ? "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-100 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/30" 
                               : "bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30"
                           )}
                         >
-                          {bed.status === 'occupied' ? (
+                          {isOccupied ? (
                             <CheckCircle2 className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
                           ) : (
                             <div className="w-4 h-4 rounded-full border-2 border-green-500 dark:border-green-400" />
                           )}
                           <div className="flex flex-col truncate">
                             <span className="truncate font-bold">Bed {bed.bedNumber.split('-')[1]}</span>
-                            {bed.status === 'occupied' && member && (
+                            {isOccupied && member && (
                               <span className="text-[10px] text-indigo-500 dark:text-indigo-400 truncate">{member.name}</span>
                             )}
                           </div>

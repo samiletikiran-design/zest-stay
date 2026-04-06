@@ -112,7 +112,7 @@ const Dashboard = () => {
 
     // 1. Real-time Members & Dues (Not affected by time filter for counts)
     const unsubMembers = onSnapshot(
-      getBaseQuery('members'),
+      query(getBaseQuery('members'), where('status', '==', 'active')),
       (snap) => {
         const list: Member[] = [];
         snap.forEach(doc => list.push({ ...doc.data() as Member, id: doc.id }));

@@ -274,9 +274,18 @@ const Members = () => {
         if (selectedMember.bedId) {
           batch.update(doc(db, 'beds', selectedMember.bedId), { status: 'vacant' });
         }
-        // Occupy new bed
-        if (editFormData.bedId) {
+        // Occupy new bed ONLY if status is active
+        if (editFormData.bedId && editFormData.status === 'active') {
           batch.update(doc(db, 'beds', editFormData.bedId), { status: 'occupied' });
+        }
+      } else if (editFormData.status !== selectedMember.status) {
+        // Bed didn't change, but status did
+        if (editFormData.bedId) {
+          if (editFormData.status === 'inactive') {
+            batch.update(doc(db, 'beds', editFormData.bedId), { status: 'vacant' });
+          } else if (editFormData.status === 'active') {
+            batch.update(doc(db, 'beds', editFormData.bedId), { status: 'occupied' });
+          }
         }
       }
 
@@ -580,7 +589,7 @@ const Members = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                    Next Due: {safeFormat(getDuesInfo(member, payments).dueDate, 'MMM d, yyyy')}
+                    Next Due: {member.status === 'active' ? safeFormat(getDuesInfo(member, payments).dueDate, 'MMM d, yyyy') : 'N/A'}
                   </div>
                 </div>
 

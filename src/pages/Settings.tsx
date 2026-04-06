@@ -30,7 +30,7 @@ import { safeFormat } from '../lib/utils';
 
 const Settings = () => {
   const { user, userData, organization, refreshUserData, logout } = useAuth();
-  const { isExpired, maxRooms, maxProperties, canAccessMultiProperty } = useSubscription();
+  const { isExpired, maxRooms, maxProperties, canAddExpenses, canAddStaff, subscriptionType } = useSubscription();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
@@ -215,23 +215,27 @@ const Settings = () => {
               </Link>
             </div>
             
-            <div className="mt-6 grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">
               <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700">
                 <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase mb-1">Room Limit</p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">{organization?.subscriptionType?.includes('unlimited') ? 'Unlimited' : maxRooms} Rooms</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">{subscriptionType.includes('unlimited') ? 'Unlimited' : maxRooms} Rooms</p>
               </div>
               <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700">
                 <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase mb-1">Property Limit</p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">{organization?.subscriptionType?.includes('unlimited') ? 'Unlimited' : maxProperties} Properties</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">{subscriptionType.includes('unlimited') ? 'Unlimited' : maxProperties} Properties</p>
               </div>
               <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700">
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase mb-1">Multi-Property</p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">{canAccessMultiProperty ? 'Enabled' : 'Disabled'}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase mb-1">Expenses</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">{canAddExpenses ? 'Enabled' : 'Disabled'}</p>
+              </div>
+              <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase mb-1">Staff Mgmt</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">{canAddStaff ? 'Enabled' : 'Disabled'}</p>
               </div>
               <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700">
                 <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase mb-1">Support</p>
                 <p className="text-lg font-bold text-gray-900 dark:text-white">
-                  {organization?.subscriptionType?.includes('unlimited') ? '24/7 Phone' : (organization?.subscriptionType?.includes('growth') ? 'Priority Email' : 'Email Only')}
+                  {subscriptionType.includes('unlimited') ? '24/7 Phone' : (subscriptionType.includes('growth') ? 'Priority Email' : 'Email Only')}
                 </p>
               </div>
             </div>
