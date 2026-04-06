@@ -12,7 +12,6 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
         VitePWA({
           registerType: 'autoUpdate',
-          includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
           manifest: {
             name: 'Zest Stay',
             short_name: 'Zest Stay',
@@ -23,16 +22,22 @@ export default defineConfig(({mode}) => {
             start_url: '/',
             icons: [
               {
-                src: 'https://picsum.photos/seed/hostel/192/192',
+                src: 'https://api.dicebear.com/7.x/initials/png?seed=ZS&backgroundColor=4f46e5&width=192&height=192',
                 sizes: '192x192',
                 type: 'image/png',
-                purpose: 'any maskable'
+                purpose: 'any'
               },
               {
-                src: 'https://picsum.photos/seed/hostel/512/512',
+                src: 'https://api.dicebear.com/7.x/initials/png?seed=ZS&backgroundColor=4f46e5&width=512&height=512',
                 sizes: '512x512',
                 type: 'image/png',
-                purpose: 'any maskable'
+                purpose: 'any'
+              },
+              {
+                src: 'https://api.dicebear.com/7.x/initials/png?seed=ZS&backgroundColor=4f46e5&width=192&height=192',
+                sizes: '192x192',
+                type: 'image/png',
+                purpose: 'maskable'
               }
             ]
           }

@@ -56,13 +56,14 @@ const Settings = () => {
     setError('');
     setLoading(true);
     try {
+      const nameToUpdate = orgName;
       // Update Auth Profile
-      await updateProfile(user, { displayName: name });
+      await updateProfile(user, { displayName: nameToUpdate });
       
       // Update Firestore User
       const userRef = doc(db, 'users', user.uid);
       try {
-        await updateDoc(userRef, { name });
+        await updateDoc(userRef, { name: nameToUpdate });
       } catch (err: any) {
         handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}`);
         throw err;
@@ -144,34 +145,9 @@ const Settings = () => {
           </div>
           <form onSubmit={handleUpdateProfile} className="p-6 space-y-6">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
-                  placeholder="Your Name"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
-                <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-500 dark:text-gray-400">
-                  <Mail className="w-4 h-4" />
-                  <span className="text-sm">{user?.email}</span>
-                </div>
-                <p className="mt-1 text-xs text-gray-400 dark:text-gray-500 italic">Email cannot be changed</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
-                <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-500 dark:text-gray-400">
-                  <Phone className="w-4 h-4" />
-                  <span className="text-sm">{userData?.phone}</span>
-                </div>
-              </div>
               {userData?.role === 'admin' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Organization Name</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hostel / PG Name</label>
                   <div className="relative">
                     <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                     <input
@@ -179,11 +155,18 @@ const Settings = () => {
                       value={orgName}
                       onChange={(e) => setOrgName(e.target.value)}
                       className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
-                      placeholder="Organization Name"
+                      placeholder="Hostel / PG Name"
                     />
                   </div>
                 </div>
               )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
+                <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-500 dark:text-gray-400">
+                  <Phone className="w-4 h-4" />
+                  <span className="text-sm">{userData?.phone}</span>
+                </div>
+              </div>
             </div>
             <div className="flex justify-end">
               <button

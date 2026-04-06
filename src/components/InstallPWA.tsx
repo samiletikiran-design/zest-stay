@@ -15,7 +15,7 @@ const InstallPWA: React.FC = () => {
     const checkMobile = () => {
       const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
       const isMobileUA = /android|iphone|ipad|ipod|windows phone|iemobile|mobile/i.test(userAgent.toLowerCase());
-      const isSmallScreen = window.innerWidth < 1024; // lg breakpoint in Tailwind
+      const isSmallScreen = window.innerWidth < 1024;
       return isMobileUA || isSmallScreen;
     };
     
@@ -23,20 +23,17 @@ const InstallPWA: React.FC = () => {
     setIsMobile(mobile);
 
     const handleResize = () => {
-      const isNowMobile = checkMobile();
-      setIsMobile(isNowMobile);
+      setIsMobile(checkMobile());
     };
     window.addEventListener('resize', handleResize);
 
-    const handleBeforeInstallPrompt = (e: Event) => {
+    const handleBeforeInstallPrompt = (e: any) => {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
       // Stash the event so it can be triggered later.
       setDeferredPrompt(e);
       
-      // Check if already installed
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
-      
       if (!isStandalone && mobile) {
         setIsVisible(true);
       }
@@ -44,20 +41,20 @@ const InstallPWA: React.FC = () => {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    // Check if already installed
+    // Initial check
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+    const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+    const isIframe = window.self !== window.top;
     
     if (isStandalone) {
       setIsVisible(false);
     } else if (mobile) {
-      // If mobile and not standalone, show the banner after a short delay
-      const timer = setTimeout(() => {
-        const stillStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
-        if (!stillStandalone) {
-          setIsVisible(true);
-        }
-      }, 1000);
-      return () => clearTimeout(timer);
+      // On iOS or in an iframe, we show the banner immediately because beforeinstallprompt won't fire
+      if (isIOS || isIframe) {
+        const timer = setTimeout(() => setIsVisible(true), 1500);
+        return () => clearTimeout(timer);
+      }
+      // On Android/Chrome, we wait for beforeinstallprompt to ensure "automatic" install works
     }
 
     return () => {
@@ -70,28 +67,54 @@ const InstallPWA: React.FC = () => {
   useEffect(() => {
     if (location.pathname === '/dashboard' || location.pathname === '/') {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+      const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+      const isIframe = window.self !== window.top;
+
       if (!isStandalone && isMobile) {
-        setIsVisible(true);
+        // Only show if it's iOS, an iframe, or if the prompt is already ready
+        if (isIOS || isIframe || deferredPrompt) {
+          setIsVisible(true);
+        }
       }
     }
-  }, [location.pathname, isMobile]);
+  }, [location.pathname, isMobile, deferredPrompt]);
 
   const handleInstallClick = async () => {
+    const isIframe = window.self !== window.top;
+    if (isIframe) {
+      toast.info("To install as an app, please open the website in a new browser tab first.", {
+        action: {
+          label: "Open Now",
+          onClick: () => window.open(window.location.href, '_blank')
+        },
+        duration: 8000
+      });
+      return;
+    }
+
     if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      setDeferredPrompt(null);
-      setIsVisible(false);
+      try {
+        await deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          setDeferredPrompt(null);
+          setIsVisible(false);
+          toast.success("Thank you for installing Zest Stay!");
+        }
+      } catch (err) {
+        console.error("Installation failed:", err);
+        toast.error("Installation could not be started. Please try again from your browser menu.");
+      }
     } else {
       const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
       if (isIOS) {
         toast.info(
-          "To install: Tap the Share button in your browser's toolbar and then 'Add to Home Screen'.",
-          { duration: 6000 }
+          "To install: Tap the 'Share' button in Safari and select 'Add to Home Screen'.",
+          { duration: 8000 }
         );
       } else {
         toast.info(
-          "To install: Open your browser menu and select 'Install App' or 'Add to Home Screen'.",
+          "Installation is being prepared. If the prompt doesn't appear, please use your browser's 'Install App' menu option.",
           { duration: 6000 }
         );
       }

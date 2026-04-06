@@ -22,6 +22,7 @@ import { format } from 'date-fns';
 import { safeFormat } from '../lib/utils';
 import { useHostelManagement } from '../hooks/useHostelManagement';
 import AddHostelModal from '../components/AddHostelModal';
+import UpgradeModal from '../components/UpgradeModal';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -43,6 +44,7 @@ const Hostels = () => {
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [selectedHostel, setSelectedHostel] = useState<Hostel | null>(null);
   const [activeMembersCount, setActiveMembersCount] = useState(0);
   const [confirmText, setConfirmText] = useState('');
@@ -140,16 +142,11 @@ const Hostels = () => {
         <button 
           onClick={() => {
             if (isExpired) {
-              toast.error('Your subscription has expired. Please renew to add new hostels.');
+              setIsUpgradeModalOpen(true);
               return;
             }
             if (hostels.length >= maxProperties) {
-              toast.error(`You have reached the limit of ${maxProperties} properties for your current plan. Please upgrade to a higher plan to add more hostels.`, {
-                action: {
-                  label: 'Upgrade Now',
-                  onClick: () => navigate('/settings?tab=subscription')
-                }
-              });
+              setIsUpgradeModalOpen(true);
               return;
             }
             setIsAddHostelModalOpen(true);
@@ -339,6 +336,18 @@ const Hostels = () => {
           </div>
         </div>
       )}
+      <UpgradeModal 
+        isOpen={isUpgradeModalOpen} 
+        onClose={() => setIsUpgradeModalOpen(false)} 
+        title="Upgrade Your Plan"
+        description="Scale your business by adding more hostels and managing multiple properties easily."
+        features={[
+          "Add Multiple Hostels/PGs",
+          "Centralized Management",
+          "Property-wise Analytics",
+          "Unlimited Rooms & Beds"
+        ]}
+      />
     </div>
   );
 };

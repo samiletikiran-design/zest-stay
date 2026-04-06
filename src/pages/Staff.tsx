@@ -24,6 +24,7 @@ import { format, addMonths, isBefore, startOfMonth, parseISO, isAfter } from 'da
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { safeFormat } from '../lib/utils';
+import UpgradeModal from '../components/UpgradeModal';
 
 const StaffPage = () => {
   const navigate = useNavigate();
@@ -36,6 +37,7 @@ const StaffPage = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSalaryModalOpen, setIsSalaryModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [staffToDelete, setStaffToDelete] = useState<string | null>(null);
 
@@ -102,8 +104,8 @@ const StaffPage = () => {
     e.preventDefault();
     if (!organization || !currentHostel) return;
 
-    if (isExpired) {
-      toast.error('Your subscription has expired. Please renew to add staff members.');
+    if (isExpired || !canAddStaff) {
+      setIsUpgradeModalOpen(true);
       return;
     }
 
@@ -139,12 +141,7 @@ const StaffPage = () => {
     if (!organization || !currentHostel || !selectedStaff) return;
 
     if (!canAddStaff) {
-      toast.error('Your current plan does not allow recording salaries. Please upgrade to Unlimited plan.', {
-        action: {
-          label: 'Upgrade Now',
-          onClick: () => navigate('/settings?tab=subscription')
-        }
-      });
+      setIsUpgradeModalOpen(true);
       return;
     }
 
@@ -177,12 +174,7 @@ const StaffPage = () => {
     if (!organization || !selectedStaff) return;
 
     if (!canAddStaff) {
-      toast.error('Your current plan does not allow editing staff. Please upgrade to Unlimited plan.', {
-        action: {
-          label: 'Upgrade Now',
-          onClick: () => navigate('/settings?tab=subscription')
-        }
-      });
+      setIsUpgradeModalOpen(true);
       return;
     }
 
@@ -208,12 +200,7 @@ const StaffPage = () => {
     if (!staffToDelete) return;
 
     if (!canAddStaff) {
-      toast.error('Your current plan does not allow deleting staff. Please upgrade to Unlimited plan.', {
-        action: {
-          label: 'Upgrade Now',
-          onClick: () => navigate('/settings?tab=subscription')
-        }
-      });
+      setIsUpgradeModalOpen(true);
       return;
     }
     try {
@@ -271,12 +258,7 @@ const StaffPage = () => {
           <button 
             onClick={() => {
               if (!canAddStaff) {
-                toast.error('Your current plan does not allow adding staff. Please upgrade to Unlimited plan.', {
-                  action: {
-                    label: 'Upgrade Now',
-                    onClick: () => navigate('/settings?tab=subscription')
-                  }
-                });
+                setIsUpgradeModalOpen(true);
                 return;
               }
               setIsModalOpen(true);
@@ -694,6 +676,18 @@ const StaffPage = () => {
           </div>
         </div>
       )}
+      <UpgradeModal 
+        isOpen={isUpgradeModalOpen} 
+        onClose={() => setIsUpgradeModalOpen(false)} 
+        title="Upgrade to Unlimited Plan"
+        description="Manage your hostel team efficiently with staff roles, salary tracking, and more."
+        features={[
+          "Unlimited Staff Management",
+          "Salary Payment Tracking",
+          "Staff Roles & Assignments",
+          "Detailed Staff Reports"
+        ]}
+      />
     </div>
   );
 };

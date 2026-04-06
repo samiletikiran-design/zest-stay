@@ -29,6 +29,7 @@ import { Member, Room, Bed, Payment } from '../types';
 import { format, addMonths, isAfter, startOfMonth, endOfMonth, isBefore, addDays, startOfDay, differenceInMonths, parseISO, subMonths } from 'date-fns';
 import { safeFormat } from '../lib/utils';
 import { getDuesInfo, calculateProRataRent } from '../lib/dues';
+import UpgradeModal from '../components/UpgradeModal';
 
 import { toast } from 'sonner';
 import { clsx, type ClassValue } from 'clsx';
@@ -52,6 +53,7 @@ const Members = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isCollectRentModalOpen, setIsCollectRentModalOpen] = useState(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [memberPayments, setMemberPayments] = useState<Payment[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -209,7 +211,7 @@ const Members = () => {
     if (!organization || !currentHostel) return;
 
     if (isExpired) {
-      toast.error('Your subscription has expired. Please renew to add new members.');
+      setIsUpgradeModalOpen(true);
       return;
     }
 
@@ -432,7 +434,7 @@ const Members = () => {
         <button 
           onClick={() => {
             if (isExpired) {
-              toast.error('Your subscription has expired. Please renew to add new members.');
+              setIsUpgradeModalOpen(true);
               return;
             }
             setIsModalOpen(true);
@@ -1225,6 +1227,18 @@ const Members = () => {
           </div>
         </div>
       )}
+      <UpgradeModal 
+        isOpen={isUpgradeModalOpen} 
+        onClose={() => setIsUpgradeModalOpen(false)} 
+        title="Upgrade Your Plan"
+        description="Manage more residents and access advanced features like automated reminders and detailed history."
+        features={[
+          "Unlimited Member Registration",
+          "Automated Rent Reminders",
+          "Detailed Payment History",
+          "Member Document Management"
+        ]}
+      />
     </div>
   );
 };

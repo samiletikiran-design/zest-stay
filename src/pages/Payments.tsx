@@ -29,6 +29,7 @@ import { format, startOfMonth, endOfMonth, subMonths, subYears, parseISO, isAfte
 import { toast } from 'sonner';
 import { safeFormat } from '../lib/utils';
 import { getDuesInfo } from '../lib/dues';
+import UpgradeModal from '../components/UpgradeModal';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -45,6 +46,7 @@ const Payments = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [timeFilter, setTimeFilter] = useState('monthly');
   const [customRange, setCustomRange] = useState({ start: '', end: '' });
@@ -285,7 +287,7 @@ const Payments = () => {
           <button 
             onClick={() => {
               if (isExpired) {
-                toast.error('Your subscription has expired. Please renew to record new payments.');
+                setIsUpgradeModalOpen(true);
                 return;
               }
               setIsModalOpen(true);
@@ -448,7 +450,7 @@ const Payments = () => {
                             <button 
                               onClick={() => {
                                 if (isExpired) {
-                                  toast.error('Your subscription has expired. Please renew to record new payments.');
+                                  setIsUpgradeModalOpen(true);
                                   return;
                                 }
                                 openQuickCollect(member, member.duesInfo.targetMonth, member.rentAmount);
@@ -776,6 +778,18 @@ const Payments = () => {
           </div>
         </div>
       )}
+      <UpgradeModal 
+        isOpen={isUpgradeModalOpen} 
+        onClose={() => setIsUpgradeModalOpen(false)} 
+        title="Upgrade Your Plan"
+        description="Access advanced payment tracking, automated receipts, and detailed financial reports."
+        features={[
+          "Unlimited Payment Records",
+          "Automated Digital Receipts",
+          "Financial Performance Reports",
+          "Bulk Payment Reminders"
+        ]}
+      />
     </div>
   );
 };

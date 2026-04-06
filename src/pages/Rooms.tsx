@@ -29,6 +29,7 @@ import { safeFormat } from '../lib/utils';
 import { getDuesInfo, calculateProRataRent } from '../lib/dues';
 import { useHostelManagement } from '../hooks/useHostelManagement';
 import AddHostelModal from '../components/AddHostelModal';
+import UpgradeModal from '../components/UpgradeModal';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -61,6 +62,7 @@ const Rooms = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isCollectRentModalOpen, setIsCollectRentModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState<string | null>(null);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [memberPayments, setMemberPayments] = useState<Payment[]>([]);
@@ -232,20 +234,12 @@ const Rooms = () => {
     if (!organization || !currentHostel) return;
 
     if (isExpired) {
-      toast.error('Your subscription has expired. Please renew to add new rooms.');
+      setIsUpgradeModalOpen(true);
       return;
     }
 
     if (rooms.length >= maxRooms) {
-      const limitMessage = organization?.subscriptionType?.includes('unlimited') 
-        ? "You have reached the maximum capacity for your current plan. Please contact sales for enterprise solutions."
-        : `You have reached the limit of ${maxRooms} rooms for your current plan. Please upgrade to add more rooms.`;
-      toast.error(limitMessage, {
-        action: {
-          label: 'Upgrade Now',
-          onClick: () => navigate('/settings?tab=subscription')
-        }
-      });
+      setIsUpgradeModalOpen(true);
       return;
     }
 
@@ -438,7 +432,7 @@ const Rooms = () => {
           <button 
             onClick={() => {
               if (isExpired) {
-                toast.error('Your subscription has expired. Please renew to add new rooms.');
+                setIsUpgradeModalOpen(true);
                 return;
               }
               setIsModalOpen(true);
@@ -455,22 +449,6 @@ const Rooms = () => {
           </button>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button 
-            onClick={() => {
-              if (isExpired) {
-                toast.error('Your subscription has expired. Please renew to add new hostels.');
-                return;
-              }
-              setIsAddHostelModalOpen(true);
-            }}
-            className={cn(
-              "flex items-center justify-center gap-1.5 sm:gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-colors shadow-sm whitespace-nowrap flex-shrink-0",
-              isExpired && "opacity-50 cursor-not-allowed"
-            )}
-          >
-            <Building2 className="w-4 h-4 sm:w-5 h-5" />
-            Add Hostel
-          </button>
           {hostels.length > 1 && (
             <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 shadow-sm">
               <Building2 className="w-4 h-4 text-gray-400 dark:text-gray-500" />
@@ -526,7 +504,7 @@ const Rooms = () => {
           <button 
             onClick={() => {
               if (isExpired) {
-                toast.error('Your subscription has expired. Please renew to add new rooms.');
+                setIsUpgradeModalOpen(true);
                 return;
               }
               setIsModalOpen(true);
@@ -1059,6 +1037,18 @@ const Rooms = () => {
           </div>
         </div>
       )}
+      <UpgradeModal 
+        isOpen={isUpgradeModalOpen} 
+        onClose={() => setIsUpgradeModalOpen(false)} 
+        title="Upgrade Your Plan"
+        description="Expand your hostel capacity by adding more rooms and beds to accommodate more residents."
+        features={[
+          "Increase Room Capacity",
+          "Advanced Room Management",
+          "Occupancy Analytics",
+          "Unlimited Bed Configurations"
+        ]}
+      />
     </div>
   );
 };

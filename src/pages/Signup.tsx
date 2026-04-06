@@ -21,17 +21,15 @@ const Signup = () => {
   const { user, loading: authLoading, refreshUserData, isNewUser } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [orgName, setOrgName] = useState('');
-  const [hostelName, setHostelName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
   
   // OTP States
   const [step, setStep] = useState<'info' | 'verify'>('info');
-  const [verificationMethod, setVerificationMethod] = useState<'email' | 'phone'>('email');
+  const [verificationMethod, setVerificationMethod] = useState<'phone'>('phone');
   const [otp, setOtp] = useState('');
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [resendTimer, setResendTimer] = useState(0);
@@ -88,16 +86,6 @@ const Signup = () => {
         const result = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
         setConfirmationResult(result);
         toast.success('OTP sent to your phone!');
-      } else {
-        const response = await fetch('/api/send-email-otp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email }),
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Failed to send email OTP');
-        
-        toast.success('OTP sent to your email!');
       }
       setStep('verify');
       setResendTimer(60);
@@ -153,31 +141,23 @@ const Signup = () => {
       // 2. Create Firebase Auth User (if not already created by phone auth)
       if (!currentUser) throw new Error('Failed to identify user after verification');
       
-      if (verificationMethod === 'email') {
-        // Link email/password so they can use both.
-        const credential = EmailAuthProvider.credential(email, password);
-        try {
-          await linkWithCredential(currentUser, credential);
-        } catch (linkErr: any) {
-          console.error('Linking failed:', linkErr);
-          // If it fails because it's already linked or something, we can ignore if they are signed in
-        }
-      } else {
-        // For phone auth, user is already signed in. Link email/password so they can use both.
-        const credential = EmailAuthProvider.credential(email, password);
-        try {
-          await linkWithCredential(currentUser, credential);
-        } catch (linkErr: any) {
-          console.error('Linking failed:', linkErr);
-          if (linkErr.code === 'auth/email-already-in-use') {
-            throw new Error('This email is already associated with another account. Please use a different email or sign in.');
-          } else if (linkErr.code === 'auth/credential-already-in-use') {
-            // This phone is already linked to another email? Or this email is already linked?
-          } else if (linkErr.code === 'auth/invalid-credential' || linkErr.message?.includes('auth/invalid-credential')) {
-            throw new Error('Invalid email or password format. Please check your details and try again.');
-          } else {
-            throw new Error(`Failed to link email: ${linkErr.message}`);
-          }
+      const derivedEmail = `${phone}@zeststay.app`;
+      const name = orgName;
+      const hostelName = orgName;
+
+      // For phone auth, user is already signed in. Link email/password so they can use both.
+      const credential = EmailAuthProvider.credential(derivedEmail, password);
+      try {
+        await linkWithCredential(currentUser, credential);
+      } catch (linkErr: any) {
+        console.error('Linking failed:', linkErr);
+        if (linkErr.code === 'auth/email-already-in-use') {
+          // If email already exists, maybe they already have an account?
+          // But we are in signup. 
+        } else if (linkErr.code === 'auth/credential-already-in-use') {
+          // Already linked
+        } else if (linkErr.code === 'auth/invalid-credential' || linkErr.message?.includes('auth/invalid-credential')) {
+          // Ignore if it's just a linking issue but they are signed in
         }
       }
 
@@ -193,7 +173,7 @@ const Signup = () => {
 
       const userRef = doc(db, 'users', currentUser.uid);
       batch.set(userRef, {
-        email: email || currentUser.email || '',
+        email: derivedEmail,
         name,
         phone: `+91${cleanPhone}`,
         organizationId: orgId,
@@ -206,7 +186,7 @@ const Signup = () => {
       batch.set(orgRef, {
         name: orgName,
         ownerUid: currentUser.uid,
-        ownerEmail: email || currentUser.email || '',
+        ownerEmail: derivedEmail,
         ownerPhone: `+91${cleanPhone}`,
         createdAt: serverTimestamp(),
         subscriptionStatus: 'active',
@@ -249,7 +229,7 @@ const Signup = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
-      <div id="recaptcha-container"></div>
+      <div id="recaptcha-container" className="fixed bottom-0 right-0 z-[-1] pointer-events-none opacity-0"></div>
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
           <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-200 dark:shadow-none">
@@ -274,7 +254,7 @@ const Signup = () => {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white dark:bg-gray-800 py-8 px-6 shadow-xl sm:rounded-2xl sm:px-10 border border-gray-100 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 py-8 px-6 shadow-xl rounded-3xl sm:px-10 border border-gray-100 dark:border-gray-700">
           {error && (
             <div className="mb-6 bg-red-50 dark:bg-red-900/30 border-l-4 border-red-400 p-4 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
@@ -285,79 +265,8 @@ const Signup = () => {
           {step === 'info' ? (
             <form className="space-y-4" onSubmit={handleSendOTP}>
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Your Name
-                </label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <User className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    placeholder="John Doe"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Mobile Number
-                  </label>
-                  <div className="mt-1 relative rounded-md shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <span className="text-gray-500 sm:text-sm font-medium">+91</span>
-                    </div>
-                    <input
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      required
-                      pattern="[0-9]{10}"
-                      maxLength={10}
-                      value={phone}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                        setPhone(val);
-                      }}
-                      className="block w-full pl-12 pr-3 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      placeholder="10-digit mobile"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Email address
-                  </label>
-                  <div className="mt-1 relative rounded-md shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Mail className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      id="email"
-                      name="email"
-                      type="email"
-                      autoComplete="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      placeholder="you@example.com"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
                 <label htmlFor="orgName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Organization / Group Name
+                  Hostel / PG Name
                 </label>
                 <div className="mt-1 relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -371,28 +280,33 @@ const Signup = () => {
                     value={orgName}
                     onChange={(e) => setOrgName(e.target.value)}
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    placeholder="e.g. Zest Stay Group"
+                    placeholder="e.g. Zest Stay PG"
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="hostelName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  First Hostel / Building Name
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Mobile Number
                 </label>
                 <div className="mt-1 relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Bed className="h-5 w-5 text-gray-400" />
+                    <span className="text-gray-500 sm:text-sm font-medium">+91</span>
                   </div>
                   <input
-                    id="hostelName"
-                    name="hostelName"
-                    type="text"
+                    id="phone"
+                    name="phone"
+                    type="tel"
                     required
-                    value={hostelName}
-                    onChange={(e) => setHostelName(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    placeholder="e.g. Building A"
+                    pattern="[0-9]{10}"
+                    maxLength={10}
+                    value={phone}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setPhone(val);
+                    }}
+                    className="block w-full pl-12 pr-3 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="10 digit phone number"
                   />
                 </div>
               </div>
@@ -420,43 +334,13 @@ const Signup = () => {
                 </div>
               </div>
 
-              <div className="space-y-3 pt-2">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Verify via:</p>
-                <div className="flex gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setVerificationMethod('email')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg border text-sm font-medium transition-all ${
-                      verificationMethod === 'email'
-                        ? 'bg-indigo-50 dark:bg-indigo-900/30 border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400'
-                        : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    <Mail className="w-4 h-4" />
-                    Email
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setVerificationMethod('phone')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg border text-sm font-medium transition-all ${
-                      verificationMethod === 'phone'
-                        ? 'bg-indigo-50 dark:bg-indigo-900/30 border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400'
-                        : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    <Phone className="w-4 h-4" />
-                    Phone
-                  </button>
-                </div>
-              </div>
-
               <div className="pt-4">
                 <button
                   type="submit"
                   disabled={loading}
                   className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                 >
-                  {loading ? 'Sending OTP...' : 'Continue to Verification'}
+                  {loading ? 'Sending OTP...' : 'Continue'}
                 </button>
               </div>
             </form>
@@ -469,7 +353,7 @@ const Signup = () => {
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
                   Please enter the 6-digit code sent to <br />
                   <span className="font-semibold text-gray-900 dark:text-white">
-                    {verificationMethod === 'email' ? email : `+91 ${phone}`}
+                    +91 {phone}
                   </span>
                 </p>
               </div>

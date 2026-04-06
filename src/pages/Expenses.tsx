@@ -25,6 +25,7 @@ import { format, startOfMonth, endOfMonth, subMonths, subYears, parseISO } from 
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { safeFormat } from '../lib/utils';
+import UpgradeModal from '../components/UpgradeModal';
 
 const Expenses = () => {
   const navigate = useNavigate();
@@ -38,6 +39,7 @@ const Expenses = () => {
   const [customRange, setCustomRange] = useState({ start: '', end: '' });
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
 
   // Form State
@@ -117,17 +119,12 @@ const Expenses = () => {
     if (!organization || !currentHostel) return;
 
     if (!canAddExpenses) {
-      toast.error('Your current plan does not allow adding expenses. Please upgrade to Growth plan.', {
-        action: {
-          label: 'Upgrade Now',
-          onClick: () => navigate('/settings?tab=subscription')
-        }
-      });
+      setIsUpgradeModalOpen(true);
       return;
     }
 
     if (isExpired) {
-      toast.error('Your subscription has expired. Please renew to add expenses.');
+      setIsUpgradeModalOpen(true);
       return;
     }
 
@@ -161,12 +158,7 @@ const Expenses = () => {
     if (!expenseToDelete) return;
 
     if (!canAddExpenses) {
-      toast.error('Your current plan does not allow deleting expenses. Please upgrade to Growth plan.', {
-        action: {
-          label: 'Upgrade Now',
-          onClick: () => navigate('/settings?tab=subscription')
-        }
-      });
+      setIsUpgradeModalOpen(true);
       return;
     }
     try {
@@ -257,13 +249,8 @@ const Expenses = () => {
 
           <button 
             onClick={() => {
-              if (!canAddExpenses) {
-                toast.error('Your current plan does not allow adding expenses. Please upgrade to Growth plan.', {
-                  action: {
-                    label: 'Upgrade Now',
-                    onClick: () => navigate('/settings?tab=subscription')
-                  }
-                });
+              if (!canAddExpenses || isExpired) {
+                setIsUpgradeModalOpen(true);
                 return;
               }
               setIsModalOpen(true);
@@ -507,6 +494,18 @@ const Expenses = () => {
           </div>
         </div>
       )}
+      <UpgradeModal 
+        isOpen={isUpgradeModalOpen} 
+        onClose={() => setIsUpgradeModalOpen(false)} 
+        title="Upgrade to Growth Plan"
+        description="Track your hostel operational costs with unlimited expenses, reports, and more."
+        features={[
+          "Unlimited Expense Tracking",
+          "Category-wise Reports",
+          "Custom Date Range Filters",
+          "Export Expense Data"
+        ]}
+      />
     </div>
   );
 };
