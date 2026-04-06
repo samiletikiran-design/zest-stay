@@ -12,6 +12,12 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
         VitePWA({
           registerType: 'autoUpdate',
+          includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+          filename: 'manifest.json',
+          devOptions: {
+            enabled: true,
+            type: 'module',
+          },
           manifest: {
             name: 'Zest Stay',
             short_name: 'Zest Stay',
@@ -19,7 +25,9 @@ export default defineConfig(({mode}) => {
             theme_color: '#4f46e5',
             background_color: '#ffffff',
             display: 'standalone',
+            orientation: 'portrait',
             start_url: '/',
+            scope: '/',
             icons: [
               {
                 src: 'https://api.dicebear.com/7.x/initials/png?seed=ZS&backgroundColor=4f46e5&width=192&height=192',
