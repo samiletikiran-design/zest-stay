@@ -79,9 +79,12 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       {/* Mobile/Tablet Header */}
       <div className="lg:hidden bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between sticky top-0 z-50 border-b border-gray-100 dark:border-gray-700">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-            <Bed className="w-5 h-5 text-white" />
-          </div>
+          <img 
+            src="https://firebasestorage.googleapis.com/v0/b/zest-stay.firebasestorage.app/o/Zest%20Stay%20Logo.png?alt=media&token=a9d14fd2-5361-4864-9752-16f667f99f19" 
+            alt="Zest Stay Logo" 
+            className="w-8 h-8 object-contain"
+            referrerPolicy="no-referrer"
+          />
           <div className="flex flex-col overflow-hidden">
             <span className="font-bold text-gray-900 dark:text-white truncate max-w-[150px]">
               {currentHostel?.name || organization?.name || 'Zest Stay'}
@@ -112,9 +115,12 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <div className="h-full flex flex-col">
           <div className="hidden lg:flex flex-col px-6 py-8 border-b border-gray-50 dark:border-gray-700">
             <div className="flex items-center gap-3 overflow-hidden mb-6">
-              <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200 dark:shadow-none flex-shrink-0">
-                <Bed className="w-6 h-6 text-white" />
-              </div>
+              <img 
+                src="https://firebasestorage.googleapis.com/v0/b/zest-stay.firebasestorage.app/o/Zest%20Stay%20Logo.png?alt=media&token=a9d14fd2-5361-4864-9752-16f667f99f19" 
+                alt="Zest Stay Logo" 
+                className="w-10 h-10 object-contain"
+                referrerPolicy="no-referrer"
+              />
               <div className="flex flex-col overflow-hidden">
                 <span className="font-bold text-gray-900 dark:text-white truncate">
                   {organization?.name || 'Zest Stay'}

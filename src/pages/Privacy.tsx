@@ -30,18 +30,25 @@ const Privacy = () => {
                 Zest Stay collects information to provide better services to all our users. We collect information in the following ways:
               </p>
               <ul className="list-disc pl-5 space-y-2">
-                <li><strong>Information you give us:</strong> For example, our services require you to sign up for an account. When you do, we’ll ask for personal information, like your name, email address, telephone number, or organization details.</li>
-                <li><strong>Information we get from your use of our services:</strong> We collect information about the services that you use and how you use them, like when you visit our website or interact with our ads and content.</li>
+                <li><strong>Google Account Information:</strong> When you sign in using Google OAuth, we receive your name, email address, and profile picture. This is used solely for authentication and identifying you within the platform.</li>
+                <li><strong>Property & Management Data:</strong> Information you provide about your hostels, rooms, and tenants to enable the management features of the app.</li>
+                <li><strong>Usage Data:</strong> We collect information about how you interact with our services to improve performance and user experience.</li>
               </ul>
             </section>
 
             <section className="mb-8">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">2. How We Use Information</h2>
               <p className="mb-4">
-                We use the information we collect from all of our services to provide, maintain, protect and improve them, to develop new ones, and to protect Zest Stay and our users.
+                We use the information we collect for the following purposes:
               </p>
-              <p>
-                We also use this information to offer you tailored content – like giving you more relevant search results and ads.
+              <ul className="list-disc pl-5 space-y-2">
+                <li><strong>To provide our services:</strong> Managing your PG/Hostel operations, tracking rent, and generating reports.</li>
+                <li><strong>Authentication:</strong> To securely log you into your account and protect your data.</li>
+                <li><strong>Communication:</strong> To send you critical system updates, rent reminders, and support responses.</li>
+                <li><strong>Improvement:</strong> To analyze usage patterns and develop new features that benefit our users.</li>
+              </ul>
+              <p className="mt-4 font-semibold text-indigo-600 dark:text-indigo-400">
+                We do not sell your personal data to third parties.
               </p>
             </section>
 

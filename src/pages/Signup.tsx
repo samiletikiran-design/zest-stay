@@ -90,8 +90,28 @@ const Signup = () => {
       setStep('verify');
       setResendTimer(60);
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || 'Failed to send OTP. Please try again.');
+      console.error('OTP Send error:', err);
+      let errorMessage = 'Failed to send OTP. Please try again.';
+      
+      const code = err.code || '';
+      const msg = err.message || '';
+
+      if (code === 'auth/invalid-phone-number') {
+        errorMessage = 'The phone number provided is invalid. Please enter a 10-digit number.';
+      } else if (code === 'auth/quota-exceeded') {
+        errorMessage = 'SMS quota exceeded. Please try again later or use a different number.';
+      } else if (code === 'auth/too-many-requests') {
+        errorMessage = 'Too many requests. Please try again later.';
+      } else if (code === 'auth/network-request-failed') {
+        errorMessage = 'Network error. Please check your internet connection.';
+      } else if (code === 'auth/captcha-check-failed') {
+        errorMessage = 'reCAPTCHA verification failed. Please try again.';
+      } else if (msg) {
+        errorMessage = msg;
+      }
+      
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -150,14 +170,20 @@ const Signup = () => {
       try {
         await linkWithCredential(currentUser, credential);
       } catch (linkErr: any) {
-        console.error('Linking failed:', linkErr);
+        console.warn('Linking failed (might be already linked):', linkErr);
         if (linkErr.code === 'auth/email-already-in-use') {
-          // If email already exists, maybe they already have an account?
-          // But we are in signup. 
-        } else if (linkErr.code === 'auth/credential-already-in-use') {
-          // Already linked
-        } else if (linkErr.code === 'auth/invalid-credential' || linkErr.message?.includes('auth/invalid-credential')) {
-          // Ignore if it's just a linking issue but they are signed in
+          // If email already exists, it might be their own account.
+          // We'll try to update the password instead if they are already signed in.
+          try {
+            await updatePassword(currentUser, password);
+          } catch (passErr) {
+            console.error('Failed to update password:', passErr);
+          }
+        } else if (linkErr.code === 'auth/credential-already-in-use' || linkErr.code === 'auth/provider-already-linked') {
+          // Already linked, safe to ignore
+        } else {
+          // For other errors, we might still want to proceed if the user is authenticated
+          console.error('Non-critical linking error:', linkErr);
         }
       }
 
@@ -212,8 +238,28 @@ const Signup = () => {
       await refreshUserData();
       setSignupSuccess(true);
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || 'Verification failed. Please try again.');
+      console.error('Signup error:', err);
+      let errorMessage = 'Verification failed. Please try again.';
+      
+      const code = err.code || '';
+      const msg = err.message || '';
+
+      if (code === 'auth/invalid-credential' || msg.includes('auth/invalid-credential')) {
+        errorMessage = 'Invalid verification code or session expired. Please try again.';
+      } else if (code === 'auth/code-expired') {
+        errorMessage = 'The verification code has expired. Please click "Resend code" to get a new one.';
+      } else if (code === 'auth/email-already-in-use') {
+        errorMessage = 'This phone number is already registered. Please sign in instead.';
+      } else if (code === 'auth/weak-password') {
+        errorMessage = 'Password is too weak. Please use at least 6 characters.';
+      } else if (code === 'auth/network-request-failed') {
+        errorMessage = 'Network error. Please check your internet connection.';
+      } else if (msg) {
+        errorMessage = msg;
+      }
+      
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -232,9 +278,12 @@ const Signup = () => {
       <div id="recaptcha-container" className="fixed bottom-0 right-0 z-[-1] pointer-events-none opacity-0"></div>
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-200 dark:shadow-none">
-            <Bed className="w-8 h-8 text-white" />
-          </div>
+          <img 
+            src="https://firebasestorage.googleapis.com/v0/b/zest-stay.firebasestorage.app/o/Zest%20Stay%20Logo.png?alt=media&token=a9d14fd2-5361-4864-9752-16f667f99f19" 
+            alt="Zest Stay Logo" 
+            className="w-14 h-14 object-contain"
+            referrerPolicy="no-referrer"
+          />
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
           {step === 'info' ? 'Create your account' : 'Verify your identity'}

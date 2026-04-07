@@ -12,8 +12,6 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
         VitePWA({
           registerType: 'autoUpdate',
-          includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
-          filename: 'manifest.json',
           devOptions: {
             enabled: true,
             type: 'module',

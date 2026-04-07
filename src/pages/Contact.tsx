@@ -52,7 +52,7 @@ const Contact = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-indigo-200">Email us</p>
-                    <p className="text-lg font-semibold">support@zeststay.in</p>
+                    <p className="text-lg font-semibold">contact@zeststay.in</p>
                   </div>
                 </div>
 

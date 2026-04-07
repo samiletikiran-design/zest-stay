@@ -13,15 +13,18 @@ import {
   Building2,
   Receipt,
   MessageSquare,
-  Clock
+  Clock,
+  Menu,
+  X
 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 
 const Landing = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [billingCycle, setBillingCycle] = React.useState<'monthly' | 'yearly'>('monthly');
+  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
   const features = [
     {
@@ -118,9 +121,12 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200 dark:shadow-none">
-                <Bed className="w-6 h-6 text-white" />
-              </div>
+              <img 
+                src="https://firebasestorage.googleapis.com/v0/b/zest-stay.firebasestorage.app/o/Zest%20Stay%20Logo.png?alt=media&token=a9d14fd2-5361-4864-9752-16f667f99f19" 
+                alt="Zest Stay Logo" 
+                className="w-10 h-10 object-contain"
+                referrerPolicy="no-referrer"
+              />
               <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
                 Zest Stay
               </span>
@@ -147,8 +153,73 @@ const Landing = () => {
                 </div>
               )}
             </div>
+
+            {/* Mobile Menu Button */}
+            <div className="md:hidden flex items-center">
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="p-2 text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+              >
+                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Mobile Menu Overlay */}
+        <AnimatePresence>
+          {isMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="md:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 overflow-hidden"
+            >
+              <div className="px-4 pt-2 pb-6 space-y-4">
+                <a 
+                  href="#features" 
+                  onClick={() => setIsMenuOpen(false)}
+                  className="block text-base font-medium text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                >
+                  Features
+                </a>
+                <a 
+                  href="#pricing" 
+                  onClick={() => setIsMenuOpen(false)}
+                  className="block text-base font-medium text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                >
+                  Pricing
+                </a>
+                {user ? (
+                  <Link 
+                    to="/" 
+                    onClick={() => setIsMenuOpen(false)}
+                    className="block w-full bg-indigo-600 text-white px-6 py-3 rounded-xl text-center font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 dark:shadow-none"
+                  >
+                    Dashboard
+                  </Link>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    <Link 
+                      to="/signin" 
+                      onClick={() => setIsMenuOpen(false)}
+                      className="block text-base font-medium text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                    >
+                      Login
+                    </Link>
+                    <Link 
+                      to="/signup" 
+                      onClick={() => setIsMenuOpen(false)}
+                      className="block w-full bg-indigo-600 text-white px-6 py-3 rounded-xl text-center font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 dark:shadow-none"
+                    >
+                      Get Started
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </nav>
 
       {/* Hero Section */}
@@ -235,6 +306,54 @@ const Landing = () => {
                 <p className="text-gray-600 dark:text-gray-400 leading-relaxed">{feature.description}</p>
               </motion.div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Data Transparency Section */}
+      <section className="py-24 bg-white dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-[3rem] p-8 md:p-16 border border-indigo-100 dark:border-indigo-800">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div>
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">Transparency & Data Privacy</h2>
+                <p className="text-lg text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
+                  At Zest Stay, we value your trust. We request access to your data solely to provide a seamless management experience. 
+                  Your email is used for secure authentication via Google, and your property data is stored securely to help you manage your business.
+                </p>
+                <ul className="space-y-4">
+                  <li className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                    <Shield className="w-5 h-5 text-indigo-600" />
+                    <span>Secure Google OAuth Authentication</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                    <Shield className="w-5 h-5 text-indigo-600" />
+                    <span>Encrypted Data Storage</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                    <Shield className="w-5 h-5 text-indigo-600" />
+                    <span>No Third-Party Data Sharing</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Why we request data:</h3>
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="font-bold text-indigo-600 dark:text-indigo-400 mb-1">Authentication</h4>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">We use your Google profile to verify your identity and keep your account secure.</p>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-indigo-600 dark:text-indigo-400 mb-1">Property Management</h4>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Hostel and room details are required to provide the core functionality of the app.</p>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-indigo-600 dark:text-indigo-400 mb-1">Communication</h4>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Your email is used for critical system notifications and rent reminders.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -363,7 +482,12 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-8">
             <div className="flex items-center gap-2">
-              <Bed className="w-6 h-6 text-indigo-600" />
+              <img 
+                src="https://firebasestorage.googleapis.com/v0/b/zest-stay.firebasestorage.app/o/Zest%20Stay%20Logo.png?alt=media&token=a9d14fd2-5361-4864-9752-16f667f99f19" 
+                alt="Zest Stay Logo" 
+                className="w-8 h-8 object-contain"
+                referrerPolicy="no-referrer"
+              />
               <span className="text-xl font-bold text-gray-900 dark:text-white">Zest Stay</span>
             </div>
             <div className="flex gap-8 text-sm text-gray-500 dark:text-gray-400">

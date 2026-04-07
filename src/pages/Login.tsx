@@ -95,20 +95,34 @@ const Login = () => {
         }
       }
     } catch (err: any) {
-      console.error(err);
-      let errorMessage = err.message || 'Failed to sign in. Please try again.';
+      console.error('Login error:', err);
+      let errorMessage = 'Failed to sign in. Please try again.';
       
-      if (err.code === 'auth/invalid-credential' || err.message?.includes('auth/invalid-credential')) {
+      const code = err.code || '';
+      const msg = err.message || '';
+
+      if (code === 'auth/invalid-credential' || msg.includes('auth/invalid-credential')) {
         errorMessage = 'Invalid phone number or password. Please check your credentials and try again.';
-      } else if (err.code === 'auth/user-not-found' || err.message?.includes('user-not-found')) {
-        errorMessage = 'No account found with this phone number.';
-      } else if (err.code === 'auth/wrong-password' || err.message?.includes('wrong-password')) {
-        errorMessage = 'Incorrect password. Please try again.';
-      } else if (err.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many failed attempts. Please try again later.';
+      } else if (code === 'auth/user-not-found' || msg.includes('user-not-found')) {
+        errorMessage = 'No account found with this phone number. Please sign up first.';
+      } else if (code === 'auth/wrong-password' || msg.includes('wrong-password')) {
+        errorMessage = 'Incorrect password. Please try again or use OTP login.';
+      } else if (code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed attempts. Please try again later or reset your password.';
+      } else if (code === 'auth/invalid-phone-number') {
+        errorMessage = 'The phone number provided is invalid. Please enter a 10-digit number.';
+      } else if (code === 'auth/quota-exceeded') {
+        errorMessage = 'SMS quota exceeded. Please try again later or use password login.';
+      } else if (code === 'auth/network-request-failed') {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      } else if (code === 'auth/captcha-check-failed') {
+        errorMessage = 'reCAPTCHA verification failed. Please try again.';
+      } else if (msg) {
+        errorMessage = msg;
       }
       
       setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -120,22 +134,31 @@ const Login = () => {
     setLoading(true);
 
     try {
-      if (!confirmationResult) throw new Error('No confirmation result found');
+      if (!confirmationResult) throw new Error('No confirmation result found. Please resend OTP.');
       await confirmationResult.confirm(otp);
+      toast.success('Signed in successfully!');
       navigate(from, { replace: true });
     } catch (err: any) {
-      console.error(err);
-      let errorMessage = err.message || 'Verification failed. Please try again.';
+      console.error('OTP Verification error:', err);
+      let errorMessage = 'Verification failed. Please try again.';
       
-      if (err.code === 'auth/invalid-credential' || err.message?.includes('auth/invalid-credential')) {
+      const code = err.code || '';
+      const msg = err.message || '';
+
+      if (code === 'auth/invalid-credential' || msg.includes('auth/invalid-credential')) {
         errorMessage = 'Invalid verification code or session expired. Please try again.';
-      } else if (err.code === 'auth/code-expired') {
+      } else if (code === 'auth/code-expired') {
         errorMessage = 'The verification code has expired. Please click "Resend code" to get a new one.';
-      } else if (err.code === 'auth/invalid-verification-code') {
+      } else if (code === 'auth/invalid-verification-code') {
         errorMessage = 'Invalid verification code. Please check and try again.';
+      } else if (code === 'auth/network-request-failed') {
+        errorMessage = 'Network error. Please check your internet connection.';
+      } else if (msg) {
+        errorMessage = msg;
       }
       
       setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -154,9 +177,12 @@ const Login = () => {
       <div id="recaptcha-container" className="fixed bottom-0 right-0 z-[-1] pointer-events-none opacity-0"></div>
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-200 dark:shadow-none">
-            <Bed className="w-8 h-8 text-white" />
-          </div>
+          <img 
+            src="https://firebasestorage.googleapis.com/v0/b/zest-stay.firebasestorage.app/o/Zest%20Stay%20Logo.png?alt=media&token=a9d14fd2-5361-4864-9752-16f667f99f19" 
+            alt="Zest Stay Logo" 
+            className="w-14 h-14 object-contain"
+            referrerPolicy="no-referrer"
+          />
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
           {step === 'identifier' ? 'Sign in to your account' : 'Verify OTP'}

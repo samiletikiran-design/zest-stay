@@ -131,14 +131,25 @@ service cloud.firestore {
 
     function belongsToOrg(orgId) {
       return isAuthenticated() && 
-             userExists() &&
-             getUserData().organizationId == orgId;
+             (
+               (userExists() && getUserData().organizationId == orgId) ||
+               (getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.organizationId == orgId)
+             );
+    }
+
+    function isOrgOwner(orgId) {
+      return isAuthenticated() && 
+             (
+               (exists(/databases/$(database)/documents/organizations/$(orgId)) && get(/databases/$(database)/documents/organizations/$(orgId)).data.ownerUid == request.auth.uid) ||
+               (getAfter(/databases/$(database)/documents/organizations/$(orgId)).data.ownerUid == request.auth.uid)
+             );
     }
 
     function isAdmin() {
       return isAuthenticated() &&
         ((userExists() && getUserData().role == 'admin') ||
-         (request.auth.token.email == "samileti.kiran@gmail.com"));
+         (request.auth.token.email == "samileti.kiran@gmail.com") ||
+         (request.auth.token.email == "contact@zeststay.in"));
     }
 
     function hasRequiredFields(fields) {
@@ -299,13 +310,13 @@ service cloud.firestore {
         belongsToOrg(resource.data.organizationId)
       );
       allow create: if isAuthenticated() && 
-                      belongsToOrg(request.resource.data.organizationId) && 
+                      (belongsToOrg(request.resource.data.organizationId) || isOrgOwner(request.resource.data.organizationId)) && 
                       isValidHostel(request.resource.data);
       allow update: if isAuthenticated() && (
         isAdmin() ||
         (resource != null && belongsToOrg(resource.data.organizationId))
       ) && isValidHostel(request.resource.data) && fieldUnchanged('organizationId') && fieldUnchanged('createdAt');
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() || (resource != null && isOrgOwner(resource.data.organizationId));
     }
 
     match /rooms/{roomId} {
