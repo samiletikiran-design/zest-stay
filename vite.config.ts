@@ -30,19 +30,19 @@ export default defineConfig(({mode}) => {
             scope: '/',
             icons: [
               {
-                src: 'https://api.dicebear.com/7.x/initials/png?seed=ZS&backgroundColor=4f46e5&width=192&height=192',
+                src: 'https://firebasestorage.googleapis.com/v0/b/zest-stay.firebasestorage.app/o/Zest%20Stay%20Logo.png?alt=media&token=a9d14fd2-5361-4864-9752-16f667f99f19',
                 sizes: '192x192',
                 type: 'image/png',
                 purpose: 'any'
               },
               {
-                src: 'https://api.dicebear.com/7.x/initials/png?seed=ZS&backgroundColor=4f46e5&width=512&height=512',
+                src: 'https://firebasestorage.googleapis.com/v0/b/zest-stay.firebasestorage.app/o/Zest%20Stay%20Logo.png?alt=media&token=a9d14fd2-5361-4864-9752-16f667f99f19',
                 sizes: '512x512',
                 type: 'image/png',
                 purpose: 'any'
               },
               {
-                src: 'https://api.dicebear.com/7.x/initials/png?seed=ZS&backgroundColor=4f46e5&width=192&height=192',
+                src: 'https://firebasestorage.googleapis.com/v0/b/zest-stay.firebasestorage.app/o/Zest%20Stay%20Logo.png?alt=media&token=a9d14fd2-5361-4864-9752-16f667f99f19',
                 sizes: '192x192',
                 type: 'image/png',
                 purpose: 'maskable'
