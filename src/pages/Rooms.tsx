@@ -63,6 +63,7 @@ const Rooms = () => {
   const [isCollectRentModalOpen, setIsCollectRentModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState<string | null>(null);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [memberPayments, setMemberPayments] = useState<Payment[]>([]);
@@ -231,7 +232,7 @@ const Rooms = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!organization || !currentHostel) return;
+    if (!organization || !currentHostel || submitting) return;
 
     if (isExpired) {
       setIsUpgradeModalOpen(true);
@@ -243,23 +244,29 @@ const Rooms = () => {
       return;
     }
 
+    setSubmitting(true);
     try {
-      const numBeds = Number(formData.totalBeds);
-      let roomRef;
-      try {
-        roomRef = await addDoc(collection(db, 'rooms'), {
-          organizationId: organization.id,
-          hostelId: currentHostel.id,
-          roomNumber: formData.roomNumber,
-          totalBeds: numBeds,
-          type: formData.type,
-        });
-      } catch (error) {
-        handleFirestoreError(error, OperationType.CREATE, 'rooms');
-        return; // Stop if room creation fails
+      // Check for duplicate room number
+      const roomExists = rooms.some(r => r.roomNumber.toLowerCase() === formData.roomNumber.trim().toLowerCase());
+      if (roomExists) {
+        toast.error(`Room ${formData.roomNumber} already exists in this hostel.`);
+        setSubmitting(false);
+        return;
       }
 
-      // Create beds for this room
+      const numBeds = Number(formData.totalBeds);
+      
+      // 1. Create the room
+      const roomRef = await addDoc(collection(db, 'rooms'), {
+        organizationId: organization.id,
+        hostelId: currentHostel.id,
+        roomNumber: formData.roomNumber,
+        totalBeds: numBeds,
+        type: formData.type,
+        createdAt: serverTimestamp(),
+      });
+
+      // 2. Create beds for this room
       const batch = writeBatch(db);
       for (let i = 1; i <= numBeds; i++) {
         const bedRef = doc(collection(db, 'beds'));
@@ -269,28 +276,45 @@ const Rooms = () => {
           roomId: roomRef.id,
           bedNumber: `${formData.roomNumber}-${String.fromCharCode(64 + i)}`,
           status: 'vacant',
+          createdAt: serverTimestamp(),
         });
       }
-      try {
-        await batch.commit();
-      } catch (error) {
-        handleFirestoreError(error, OperationType.WRITE, 'batch-create-beds');
-      }
+      
+      await batch.commit();
 
+      // 3. Success - Close modal and reset form
       setIsModalOpen(false);
-      toast.success('Room and beds created successfully!');
       setFormData({ roomNumber: '', totalBeds: '4', type: 'Non-AC' });
+      toast.success('Room and beds created successfully!');
     } catch (error) {
       console.error('Error adding room:', error);
-      toast.error('Failed to add room.');
+      if (error instanceof Error && error.message.includes('permission')) {
+        toast.error('You do not have permission to add rooms.');
+      } else {
+        toast.error('Failed to add room. Please try again.');
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!organization || !editingRoom) return;
+    if (!organization || !editingRoom || submitting) return;
 
+    setSubmitting(true);
     try {
+      // Check for duplicate room number
+      const roomExists = rooms.some(r => 
+        r.id !== editingRoom.id && 
+        r.roomNumber.toLowerCase() === editFormData.roomNumber.trim().toLowerCase()
+      );
+      if (roomExists) {
+        toast.error(`Room ${editFormData.roomNumber} already exists in this hostel.`);
+        setSubmitting(false);
+        return;
+      }
+
       const numBeds = Number(editFormData.totalBeds);
       const oldBeds = beds.filter(b => b.roomId === editingRoom.id);
       
@@ -305,13 +329,10 @@ const Rooms = () => {
             roomId: editingRoom.id,
             bedNumber: `${editFormData.roomNumber}-${String.fromCharCode(64 + i)}`,
             status: 'vacant',
+            createdAt: serverTimestamp(),
           });
         }
-        try {
-          await batch.commit();
-        } catch (error) {
-          handleFirestoreError(error, OperationType.WRITE, 'batch-add-beds');
-        }
+        await batch.commit();
       } 
       // If total beds decreased, check if any of the removed beds are occupied
       else if (numBeds < editingRoom.totalBeds) {
@@ -320,29 +341,23 @@ const Rooms = () => {
         const isAnyOccupied = bedsToRemove.some(b => b.status === 'occupied');
         if (isAnyOccupied) {
           toast.error('Cannot reduce bed capacity: Some of the beds to be removed are currently occupied.');
+          setSubmitting(false);
           return;
         }
         const batch = writeBatch(db);
         bedsToRemove.forEach(b => {
           batch.delete(doc(db, 'beds', b.id));
         });
-        try {
-          await batch.commit();
-        } catch (error) {
-          handleFirestoreError(error, OperationType.WRITE, 'batch-delete-beds');
-        }
+        await batch.commit();
       }
 
       // Update room details
-      try {
-        await updateDoc(doc(db, 'rooms', editingRoom.id), {
-          roomNumber: editFormData.roomNumber,
-          totalBeds: numBeds,
-          type: editFormData.type,
-        });
-      } catch (error) {
-        handleFirestoreError(error, OperationType.UPDATE, `rooms/${editingRoom.id}`);
-      }
+      await updateDoc(doc(db, 'rooms', editingRoom.id), {
+        roomNumber: editFormData.roomNumber,
+        totalBeds: numBeds,
+        type: editFormData.type,
+        updatedAt: serverTimestamp(),
+      });
 
       // Update existing bed numbers if room number changed
       if (editFormData.roomNumber !== editingRoom.roomNumber) {
@@ -356,11 +371,7 @@ const Rooms = () => {
             bedNumber: `${editFormData.roomNumber}-${String.fromCharCode(64 + index + 1)}`
           });
         });
-        try {
-          await batch.commit();
-        } catch (error) {
-          handleFirestoreError(error, OperationType.WRITE, 'batch-update-bed-numbers');
-        }
+        await batch.commit();
       }
 
       setIsEditModalOpen(false);
@@ -369,12 +380,15 @@ const Rooms = () => {
     } catch (error) {
       console.error('Error updating room:', error);
       toast.error('Failed to update room.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleDeleteRoom = async () => {
-    if (!roomToDelete) return;
+    if (!roomToDelete || submitting) return;
 
+    setSubmitting(true);
     try {
       const roomBeds = beds.filter(b => b.roomId === roomToDelete);
       const isOccupied = roomBeds.some(b => b.status === 'occupied');
@@ -383,6 +397,7 @@ const Rooms = () => {
         toast.error('Cannot delete room with occupied beds. Please vacate the beds first.');
         setIsDeleteModalOpen(false);
         setRoomToDelete(null);
+        setSubmitting(false);
         return;
       }
 
@@ -391,17 +406,17 @@ const Rooms = () => {
         batch.delete(doc(db, 'beds', b.id));
       });
       batch.delete(doc(db, 'rooms', roomToDelete));
-      try {
-        await batch.commit();
-      } catch (error) {
-        handleFirestoreError(error, OperationType.WRITE, 'batch-delete-room');
-      }
+      
+      await batch.commit();
+      
       toast.success('Room and beds deleted successfully!');
       setIsDeleteModalOpen(false);
       setRoomToDelete(null);
     } catch (error) {
       console.error('Error deleting room:', error);
       toast.error('Failed to delete room.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -713,9 +728,22 @@ const Rooms = () => {
               <div className="pt-4">
                 <button
                   type="submit"
-                  className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors"
+                  disabled={submitting}
+                  className={cn(
+                    "w-full py-3 rounded-xl font-bold transition-all duration-200 flex items-center justify-center gap-2",
+                    submitting 
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed" 
+                      : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100"
+                  )}
                 >
-                  Create Room & Beds
+                  {submitting ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    'Create Room & Beds'
+                  )}
                 </button>
               </div>
             </form>
@@ -775,9 +803,22 @@ const Rooms = () => {
               <div className="pt-4">
                 <button
                   type="submit"
-                  className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors"
+                  disabled={submitting}
+                  className={cn(
+                    "w-full py-3 rounded-xl font-bold transition-all duration-200 flex items-center justify-center gap-2",
+                    submitting 
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed" 
+                      : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100"
+                  )}
                 >
-                  Update Room Details
+                  {submitting ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    'Update Room Details'
+                  )}
                 </button>
               </div>
             </form>

@@ -514,9 +514,15 @@ const Dashboard = () => {
             <Link 
               key={card.name} 
               to={card.link}
-              className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-indigo-100 dark:hover:border-indigo-900 transition-all duration-200 group overflow-hidden"
+              className="relative bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-indigo-100 dark:hover:border-indigo-900 transition-all duration-200 group overflow-hidden"
             >
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+              {/* Decorative Circle */}
+              <div className={cn(
+                "absolute -top-10 -right-10 w-32 h-32 rounded-full opacity-40 transition-transform duration-500 group-hover:scale-110",
+                card.bg
+              )} />
+              
+              <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                 <div className="flex items-center gap-2 sm:gap-4">
                   <div className={cn(card.bg, "p-2 sm:p-3 rounded-xl group-hover:scale-110 transition-transform w-fit")}>
                     <Icon className={cn("w-5 h-5 sm:w-6 sm:h-6", card.color)} />

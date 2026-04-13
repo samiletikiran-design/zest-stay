@@ -80,7 +80,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       <div className="lg:hidden bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between sticky top-0 z-50 border-b border-gray-100 dark:border-gray-700">
         <div className="flex items-center gap-2">
           <img 
-            src="https://firebasestorage.googleapis.com/v0/b/zest-stay.firebasestorage.app/o/Zest%20Stay%20Logo.png?alt=media&token=a9d14fd2-5361-4864-9752-16f667f99f19" 
+            src="https://firebasestorage.googleapis.com/v0/b/zest-stay.firebasestorage.app/o/Zest%20Stay%20Logo.png?alt=media&token=ae86eee5-cb92-46a7-8d6a-95a18b775411" 
             alt="Zest Stay Logo" 
             className="w-8 h-8 object-contain"
             referrerPolicy="no-referrer"
@@ -116,7 +116,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           <div className="hidden lg:flex flex-col px-6 py-8 border-b border-gray-50 dark:border-gray-700">
             <div className="flex items-center gap-3 overflow-hidden mb-6">
               <img 
-                src="https://firebasestorage.googleapis.com/v0/b/zest-stay.firebasestorage.app/o/Zest%20Stay%20Logo.png?alt=media&token=a9d14fd2-5361-4864-9752-16f667f99f19" 
+                src="https://firebasestorage.googleapis.com/v0/b/zest-stay.firebasestorage.app/o/Zest%20Stay%20Logo.png?alt=media&token=ae86eee5-cb92-46a7-8d6a-95a18b775411" 
                 alt="Zest Stay Logo" 
                 className="w-10 h-10 object-contain"
                 referrerPolicy="no-referrer"

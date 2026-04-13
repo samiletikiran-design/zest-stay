@@ -122,7 +122,7 @@ const Landing = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-2">
               <img 
-                src="https://firebasestorage.googleapis.com/v0/b/zest-stay.firebasestorage.app/o/Zest%20Stay%20Logo.png?alt=media&token=a9d14fd2-5361-4864-9752-16f667f99f19" 
+                src="https://firebasestorage.googleapis.com/v0/b/zest-stay.firebasestorage.app/o/Zest%20Stay%20Logo.png?alt=media&token=ae86eee5-cb92-46a7-8d6a-95a18b775411" 
                 alt="Zest Stay Logo" 
                 className="w-10 h-10 object-contain"
                 referrerPolicy="no-referrer"
@@ -310,54 +310,6 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Data Transparency Section */}
-      <section className="py-24 bg-white dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-[3rem] p-8 md:p-16 border border-indigo-100 dark:border-indigo-800">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              <div>
-                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">Transparency & Data Privacy</h2>
-                <p className="text-lg text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
-                  At Zest Stay, we value your trust. We request access to your data solely to provide a seamless management experience. 
-                  Your email is used for secure authentication via Google, and your property data is stored securely to help you manage your business.
-                </p>
-                <ul className="space-y-4">
-                  <li className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-                    <Shield className="w-5 h-5 text-indigo-600" />
-                    <span>Secure Google OAuth Authentication</span>
-                  </li>
-                  <li className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-                    <Shield className="w-5 h-5 text-indigo-600" />
-                    <span>Encrypted Data Storage</span>
-                  </li>
-                  <li className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-                    <Shield className="w-5 h-5 text-indigo-600" />
-                    <span>No Third-Party Data Sharing</span>
-                  </li>
-                </ul>
-              </div>
-              <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Why we request data:</h3>
-                <div className="space-y-6">
-                  <div>
-                    <h4 className="font-bold text-indigo-600 dark:text-indigo-400 mb-1">Authentication</h4>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">We use your Google profile to verify your identity and keep your account secure.</p>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-indigo-600 dark:text-indigo-400 mb-1">Property Management</h4>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Hostel and room details are required to provide the core functionality of the app.</p>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-indigo-600 dark:text-indigo-400 mb-1">Communication</h4>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Your email is used for critical system notifications and rent reminders.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Pricing Section */}
       <section id="pricing" className="py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -483,7 +435,7 @@ const Landing = () => {
           <div className="flex flex-col md:flex-row justify-between items-center gap-8">
             <div className="flex items-center gap-2">
               <img 
-                src="https://firebasestorage.googleapis.com/v0/b/zest-stay.firebasestorage.app/o/Zest%20Stay%20Logo.png?alt=media&token=a9d14fd2-5361-4864-9752-16f667f99f19" 
+                src="https://firebasestorage.googleapis.com/v0/b/zest-stay.firebasestorage.app/o/Zest%20Stay%20Logo.png?alt=media&token=ae86eee5-cb92-46a7-8d6a-95a18b775411" 
                 alt="Zest Stay Logo" 
                 className="w-8 h-8 object-contain"
                 referrerPolicy="no-referrer"
